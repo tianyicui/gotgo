@@ -161,21 +161,9 @@ func main() {
 		}
 	}
 
-	targets := make([]string, len(files)+3)
-	targets[0] = path.Join(envbin, arch+"l")
-	targets[1] = "-o"
-	targets[2] = target
-	doLink := false
-	for i, v := range files {
-		targets[i+3] = v + "." + arch
-		if !doLink {
-			if shouldUpdate, _ := shouldUpdate(targets[i+3], target); shouldUpdate {
-				doLink = true
-			}
-		}
-	}
+	doLink, _ := shouldUpdate(target+"."+arch, target)
 	if doLink {
-		exec(targets, "")
+		exec([]string{path.Join(envbin, arch+"l"), "-o", target, target+"."+arch}, "")
 	}
 	os.Exec(path.Join(curdir, target), args, os.Environ())
 	fmt.Fprintf(os.Stderr, "Error running %v\n", args)
