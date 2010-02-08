@@ -6,6 +6,7 @@ package main
 
 import (
 	"os"
+	"exec"
 	"fmt"
 	"io/ioutil"
 	"go/parser"
@@ -28,8 +29,13 @@ var (
 	arch      = getmap(map[string]string{"amd64": "6", "386": "8", "arm": "5"}, os.Getenv("GOARCH"))
 )
 
-func exec(args []string, dir string) {
-	p, error := os.ForkExec(args[0], args, os.Environ(), dir, []*os.File{os.Stdin, os.Stdout, os.Stderr})
+func execp(args []string, dir string) {
+	args0, error := exec.LookPath(args[0])
+	if error != nil {
+		fmt.Fprintf( os.Stderr, "Can't find %s in path: %v\n", args[0], error );
+		os.Exit(1);
+	}
+	p, error := os.ForkExec(args0, args, os.Environ(), dir, []*os.File{os.Stdin, os.Stdout, os.Stderr})
 	if error != nil {
 		fmt.Fprintf( os.Stderr, "Can't %s\n", error );
 		os.Exit(1);
@@ -49,7 +55,7 @@ func getLocalImports(filename string) (imports map[string]bool, error os.Error) 
 	if error != nil {
 		return
 	}
-	file, error := parser.ParseFile(filename, source, parser.ImportsOnly)
+	file, error := parser.ParseFile(filename, source, nil, parser.ImportsOnly)
 	if error != nil {
 		return
 	}
@@ -127,7 +133,7 @@ func compile(target string) {
 	object := path.Join(dir, filename+"."+arch)
 	doUpdate, error := shouldUpdate(source, object)
 	if doUpdate {
-		exec([]string{path.Join(envbin, arch+"g"), filename + ".go"}, dir)
+		execp([]string{path.Join(envbin, arch+"g"), filename + ".go"}, dir)
 	} else if error != nil {
 		fmt.Fprintln(os.Stderr, error)
 	}
@@ -163,7 +169,7 @@ func main() {
 
 	doLink, _ := shouldUpdate(target+"."+arch, target)
 	if doLink {
-		exec([]string{path.Join(envbin, arch+"l"), "-o", target, target+"."+arch}, "")
+		execp([]string{path.Join(envbin, arch+"l"), "-o", target, target+"."+arch}, "")
 	}
 	os.Exec(path.Join(curdir, target), args, os.Environ())
 	fmt.Fprintf(os.Stderr, "Error running %v\n", args)
