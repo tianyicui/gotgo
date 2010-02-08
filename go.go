@@ -27,6 +27,7 @@ var (
 	curdir, _ = os.Getwd()
 	envbin    = os.Getenv("GOBIN")
 	arch      = getmap(map[string]string{"amd64": "6", "386": "8", "arm": "5"}, os.Getenv("GOARCH"))
+	compiledAlready = make(map[string]bool)
 )
 
 func execp(args []string, dir string) {
@@ -83,35 +84,25 @@ func getLocalImports(filename string) (imports map[string]bool, error os.Error) 
 	return
 }
 
-func collectSourceFiles(sourcePath string, sourceTable map[int]string, sourceSet map[string]int) (error os.Error) {
+func compileRecursively(sourcePath string) (error os.Error) {
 	sourcePath = path.Clean(sourcePath)
-
-	if index, exists := sourceSet[sourcePath]; exists {
-		sourceTable[index] = ""
-		sourceSet[sourcePath] = 0, false
+	if _, exists := compiledAlready[sourcePath]; exists {
+		return nil
 	}
-
-	localImports, error := getLocalImports(sourcePath + ".go")
-	if error != nil {
-		return
-	}
-
-	index := len(sourceTable)
-	sourceSet[sourcePath] = index
-	sourceTable[index] = sourcePath
-
-	for k, _ := range localImports {
-		if error = collectSourceFiles(k, sourceTable, sourceSet); error != nil {
-			break
+	localImports, error := getLocalImports(sourcePath+".go")
+	if error != nil { return }
+	needcompile, _ := shouldUpdate(sourcePath+".go", sourcePath+"."+arch)
+	for i, _ := range localImports {
+		compileRecursively(i)
+		if up, _ := shouldUpdate(i+"."+arch, sourcePath+"."+arch); up {
+			needcompile = true
 		}
 	}
-
-	return
-}
-
-func CollectSourceFiles(sourcePath string) (sourceTable map[int]string, error os.Error) {
-	sourceTable = make(map[int]string)
-	return sourceTable, collectSourceFiles(sourcePath, sourceTable, make(map[string]int))
+	if needcompile {
+		dir, filename := path.Split(sourcePath)
+		execp([]string{path.Join(envbin, arch+"g"), filename + ".go"}, dir)
+	}
+	return nil
 }
 
 func shouldUpdate(sourceFile, targetFile string) (doUpdate bool, error os.Error) {
@@ -126,19 +117,6 @@ func shouldUpdate(sourceFile, targetFile string) (doUpdate bool, error os.Error)
 	return targetStat.Mtime_ns < sourceStat.Mtime_ns, error
 }
 
-func compile(target string) {
-	dir, filename := path.Split(target)
-	dir = path.Join(curdir, dir)
-	source := path.Join(dir, filename+".go")
-	object := path.Join(dir, filename+"."+arch)
-	doUpdate, error := shouldUpdate(source, object)
-	if doUpdate {
-		execp([]string{path.Join(envbin, arch+"g"), filename + ".go"}, dir)
-	} else if error != nil {
-		fmt.Fprintln(os.Stderr, error)
-	}
-}
-
 func main() {
 	args := os.Args[1:]
 	if len(args) == 0 {
@@ -151,21 +129,7 @@ func main() {
 		target = target[0 : len(target)-3]
 	}
 
-	files, error := CollectSourceFiles(target)
-	if error != nil {
-		fmt.Fprintf(os.Stderr, "Can't %v\n", error)
-		os.Exit(1)
-	}
-
-	// Compiling source files
-	for k := len(files) - 1; k >= 0; k-- {
-		v := files[k]
-		if v != "" {
-			compile(v)
-		} else {
-			files[k] = "", false
-		}
-	}
+	compileRecursively(target)
 
 	doLink, _ := shouldUpdate(target+"."+arch, target)
 	if doLink {
