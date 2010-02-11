@@ -1,0 +1,13 @@
+package test¤type
+
+// This is a very simple template package demonstrating how some very
+// simple generic functions can be written that wouldn't otherwise be
+// expressible in go!
+
+func Head(x []¤type) ¤type {
+	return x[0]
+}
+
+func Tail(x []¤type) []¤type {
+	return x[1:]
+}

@@ -1,4 +1,6 @@
-// Copyright 2009 Dimiter Stanev, malkia@gmail.com. All rights reserved.
+// Copyright 2009 Dimiter Stanev, malkia@gmail.com.
+// Copyright 2010 David Roundy, roundyd@physics.oregonstate.edu.
+// All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -11,6 +13,7 @@ import (
 	"io/ioutil"
 	"go/parser"
 	"go/ast"
+	"strings"
 	"strconv"
 	"path"
 )
@@ -46,8 +49,8 @@ func execp(args []string, dir string) {
 		fmt.Fprintf( os.Stderr, "Can't %s\n", error );
 		os.Exit(1);
 	}
-	if m.WaitStatus != 0 {
-		os.Exit(int(m.WaitStatus));
+	if m.ExitStatus() != 0 {
+		os.Exit(int(m.ExitStatus()));
 	}
 }
 
@@ -80,11 +83,45 @@ func getLocalImports(filename string) (imports map[string]bool, error os.Error) 
 			}
 		}
 	}
+	return
+}
 
+func createGofile(sourcePath string) (error os.Error) {
+	switch n := strings.Index(sourcePath, "ø"); n {
+	case -1:
+	default:
+		basename := sourcePath[0:n]
+		typename := sourcePath[n+2:]
+		gotname := basename + ".got"
+		goname := sourcePath + ".go"
+		if needit,_ := shouldUpdate(gotname, goname); needit {
+			templbytes, error := ioutil.ReadFile(gotname)
+			templ := string(templbytes)
+			if error != nil { return }
+			packagewords := "package "+basename+"¤"
+			n := strings.Index(templ, packagewords)
+			if n == -1 {
+				fmt.Println("Bad template file", gotname)
+				return os.NewError("Bad template file "+gotname)
+			}
+			nl := strings.Index(templ[n+len(packagewords):], "\n")
+			key := "¤"+templ[n+len(packagewords):n+len(packagewords)+nl]
+
+			// Now we want to place every instance of key with typename
+			// except for the first...
+			bits := strings.Split(templ,key,0)
+			out := bits[0] + "ø"
+			for _,v := range bits[1:] {
+				out += typename + v
+			}
+			error = ioutil.WriteFile(goname, strings.Bytes(out), 0644)
+		}
+	}
 	return
 }
 
 func compileRecursively(sourcePath string) (error os.Error) {
+	// We should consider ¤ and ø from ctrl-x 8 $ and ctrl-x 8 /o respectively
 	sourcePath = path.Clean(sourcePath)
 	if _, exists := compiledAlready[sourcePath]; exists {
 		return nil
@@ -93,6 +130,7 @@ func compileRecursively(sourcePath string) (error os.Error) {
 	if error != nil { return }
 	needcompile, _ := shouldUpdate(sourcePath+".go", sourcePath+"."+arch)
 	for i, _ := range localImports {
+		createGofile(i)
 		compileRecursively(i)
 		if up, _ := shouldUpdate(i+"."+arch, sourcePath+"."+arch); up {
 			needcompile = true

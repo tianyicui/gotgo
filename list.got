@@ -1,0 +1,29 @@
+package list¤a
+
+import "fmt"
+
+// Here we have a very simple list type
+
+type List struct {
+	Data ¤a
+	Next *List
+}
+
+func Car(l *List) ¤a {
+	return l.Data
+}
+
+func Cdr(l *List) *List {
+	return l.Next
+}
+
+func Cons(x ¤a, l *List) *List {
+	return &List{x, l}
+}
+
+func (l *List) String() string {
+	if l == nil {
+		return "[]"
+	}
+	return fmt.Sprintf("%v",l.Data) + ":" + l.Next.String()
+}
