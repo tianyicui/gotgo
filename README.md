@@ -1,5 +1,5 @@
 gotit
------
+=====
 
 Gotit is two things.  One is a simple runner for .go programs, which
 is based on "go-runner", which was created by Dimiter Stanev.  The
@@ -15,7 +15,7 @@ it's one local package per source file.  This limitation should be
 largely irrelevant to the generics mechanism.
 
 Quick start
-===========
+-----------
 
 You can compile `gotit` by just typing
 
@@ -29,7 +29,7 @@ which will cause it to compile `example.go` and the two packages
 `test.got` and `list.got` and run the resulting executable.
 
 Package templating for generics
-===============================
+-------------------------------
 
 The mechanism for generics that I'm experimenting with it is to
 parametrize *packages* according to types.  I am told that this is
@@ -54,7 +54,7 @@ import, it will make sure the file `mylistøstring.go` has been
 created, and build it if necessary.
 
 About the build approach
-========================
+------------------------
 
 I chose a preprocessing approach, since this seems like the easiest
 way to experiment with a small language extension.  Since I had
@@ -73,7 +73,7 @@ files into a standard location, and will need to figure out how and
 where to appropriately cache the compiled and preprocessed packages.
 
 About the syntax
-================
+----------------
 
 I don't really like my choice of syntax, and if this approach is
 adopted as an aspect of go itself, I'd expect a better syntax to be
@@ -96,7 +96,7 @@ in some way, perhaps sort of like C++'s syntax.  The entire code for
 the `.got` file handling is about thirty lines of code.
 
 Limitations
-===========
+-----------
 
 - Currently `gotit` can't template using non-builtin types.  To enable
   this, we'll need to have a way to put the '.' in the type name
@@ -118,7 +118,7 @@ Limitations
   expertise in parsing (esp. in parsing go).
 
 Type checking `got` files
-=========================
+-------------------------
 
 One of my complaints with many (most) generic programming systems
 (e.g. cpp macros, C++ templates) is that they generally are not type
@@ -138,7 +138,7 @@ verification that additional dependencies don't creep in (e.g. through
 use of methods outside that interface).
 
 Problems solved by gotit
-========================
+------------------------
 
 - In go, there is no way to write a generic data structure, such as a
   linked list.  As the FAQ points out, this isn't *such* a problem,
@@ -162,7 +162,7 @@ Problems solved by gotit
   this code.  (And similarly for methods...)
 
 Problems not solved by gotit
-============================
+----------------------------
 
 - Overloading.  One might like to have a single function that operates
   on a variety of types.  Gotit doesn't give you this.  You only have
