@@ -11,3 +11,17 @@ func Head(x []¤type) ¤type {
 func Tail(x []¤type) []¤type {
 	return x[1:]
 }
+
+func Append(x ¤type, slice *[]¤type) {
+	length := len(*slice)
+  if length + 1 > cap(*slice) {  // reallocate
+    // Allocate double what's needed, for future growth.
+    newSlice := make([]¤type, (length + 1)*2)
+    // Copy data (could use bytes.Copy()).
+    for i, c := range *slice {
+      newSlice[i] = c
+    }
+    *slice = newSlice
+  }
+	(*slice)[length] = x
+}
