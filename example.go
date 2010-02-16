@@ -4,6 +4,7 @@ package main
 
 import (
 	"fmt"
+	ints "./sliceøint"
 	"./testøstring"
 	"./testøint"
 	list "./listøint"
@@ -16,4 +17,7 @@ func main() {
 	fmt.Println("Tail(is)", testøint.Tail(is))
 	// Doesn't the following give you nightmares of lisp?
 	fmt.Println(list.Cdr(list.Cons(1,list.Cons(2,list.Cons(3,nil)))))
+
+	ints.Map(func (a int) int { return a*2 }, is)
+	fmt.Println("is are now doubled: ", is)
 }
