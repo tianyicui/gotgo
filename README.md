@@ -31,7 +31,7 @@ executable.
 
 If you just want to see what a template package will look like, check
 out
-[slice.got][http://github.com/droundy/gotit/blob/master/slice.got],
+[slice.got](http://github.com/droundy/gotit/blob/master/slice.got),
 which is a simple package exporting handy functions for slices, such
 as Map, Fold, Filter, Append, Cat (concat).
 
