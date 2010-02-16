@@ -25,8 +25,15 @@ and you can run it on an example program by typing
 
     ./gotit example.go
 
-which will cause it to compile `example.go` and the two packages
-`test.got` and `list.got` and run the resulting executable.
+which will cause it to compile `example.go` and the three packages
+`test.got`, `slice.got` and `list.got` and run the resulting
+executable.
+
+If you just want to see what a template package will look like, check
+out
+[slice.got][http://github.com/droundy/gotit/blob/master/slice.got],
+which is a simple package exporting handy functions for slices, such
+as Map, Fold, Filter, Append, Cat (concat).
 
 Package templating for generics
 -------------------------------
