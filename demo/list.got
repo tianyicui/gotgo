@@ -1,15 +1,15 @@
-package list¤a
+package list(type a)
 
 import "fmt"
 
 // Here we have a very simple list type
 
 type List struct {
-	Data ¤a
+	Data a
 	Next *List
 }
 
-func Car(l *List) ¤a {
+func Car(l *List) a {
 	return l.Data
 }
 
@@ -17,7 +17,7 @@ func Cdr(l *List) *List {
 	return l.Next
 }
 
-func Cons(x ¤a, l *List) *List {
+func Cons(x a, l *List) *List {
 	return &List{x, l}
 }
 

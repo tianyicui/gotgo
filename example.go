@@ -4,10 +4,10 @@ package main
 
 import (
 	"fmt"
-	ints "./sliceøint"
-	"./testøstring"
-	"./testøint"
-	list "./listøint"
+	ints "./demo/slice(int)"
+	"./tests/test(string)"
+	"./tests/test(int)"
+	list "./demo/list(int)"
 )
 
 func main() {

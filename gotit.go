@@ -8,14 +8,15 @@ package main
 
 import (
 	"os"
-	"exec"
 	"fmt"
 	"io/ioutil"
 	"go/parser"
+	"go/scanner"
 	"go/ast"
 	"strings"
 	"strconv"
 	"path"
+	"./got/buildit"
 )
 
 func getmap(m map[string]string, k string) (v string) {
@@ -32,27 +33,6 @@ var (
 	arch      = getmap(map[string]string{"amd64": "6", "386": "8", "arm": "5"}, os.Getenv("GOARCH"))
 	compiledAlready = make(map[string]bool)
 )
-
-func execp(args []string, dir string) {
-	args0, error := exec.LookPath(args[0])
-	if error != nil {
-		fmt.Fprintf( os.Stderr, "Can't find %s in path: %v\n", args[0], error );
-		os.Exit(1);
-	}
-	p, error := os.ForkExec(args0, args, os.Environ(), dir, []*os.File{os.Stdin, os.Stdout, os.Stderr})
-	if error != nil {
-		fmt.Fprintf( os.Stderr, "Can't %s\n", error );
-		os.Exit(1);
-	}
-	m, error := os.Wait(p, 0)
-	if error != nil {
-		fmt.Fprintf( os.Stderr, "Can't %s\n", error );
-		os.Exit(1);
-	}
-	if m.ExitStatus() != 0 {
-		os.Exit(int(m.ExitStatus()));
-	}
-}
 
 func getLocalImports(filename string) (imports map[string]bool, error os.Error) {
 	source, error := ioutil.ReadFile(filename)
@@ -87,34 +67,30 @@ func getLocalImports(filename string) (imports map[string]bool, error os.Error) 
 }
 
 func createGofile(sourcePath string) (error os.Error) {
-	switch n := strings.Index(sourcePath, "ø"); n {
+	switch n := strings.Index(sourcePath, "("); n {
 	case -1:
 	default:
+		fmt.Println("Figuring out how to build "+sourcePath)
 		basename := sourcePath[0:n]
-		typename := sourcePath[n+2:]
+		typesname := sourcePath[n+1:]
 		gotname := basename + ".got"
-		goname := sourcePath + ".go"
-		if needit,_ := shouldUpdate(gotname, goname); needit {
-			templbytes, error := ioutil.ReadFile(gotname)
-			templ := string(templbytes)
+		gotitname := gotname + ".gotit"
+		fmt.Println("Want to build "+gotitname+" from "+gotname)
+		if needit,_ := shouldUpdate(gotname, gotitname); needit {
+			fmt.Println("Building "+gotitname+" from "+gotname)
+			error = buildit.Got2Gotit(gotname)
 			if error != nil { return }
-			packagewords := "package "+basename+"¤"
-			n := strings.Index(templ, packagewords)
-			if n == -1 {
-				fmt.Println("Bad template file", gotname)
-				return os.NewError("Bad template file "+gotname)
-			}
-			nl := strings.Index(templ[n+len(packagewords):], "\n")
-			key := "¤"+templ[n+len(packagewords):n+len(packagewords)+nl]
-
-			// Now we want to place every instance of key with typename
-			// except for the first...
-			bits := strings.Split(templ,key,0)
-			out := bits[0] + "ø"
-			for _,v := range bits[1:] {
-				out += typename + v
-			}
-			error = ioutil.WriteFile(goname, strings.Bytes(out), 0644)
+		}
+		goname := sourcePath + ".go"
+		if needit,_ := shouldUpdate(gotitname, goname); needit {
+			// first scan the type parameters
+			var scan scanner.Scanner
+			scan.Init(sourcePath, strings.Bytes(typesname), nil, 0)
+			types, error := buildit.TypeList(&scan)
+			if error != nil { return }
+			fmt.Println("The types are ",types)
+			error = buildit.GetGofile(sourcePath+".go", basename+".got", types)
+			if error != nil { return }
 		}
 	}
 	return
@@ -137,8 +113,7 @@ func compileRecursively(sourcePath string) (error os.Error) {
 		}
 	}
 	if needcompile {
-		dir, filename := path.Split(sourcePath)
-		execp([]string{path.Join(envbin, arch+"g"), filename + ".go"}, dir)
+		buildit.Compile(sourcePath+".go")
 	}
 	return nil
 }
@@ -171,7 +146,7 @@ func main() {
 
 	doLink, _ := shouldUpdate(target+"."+arch, target)
 	if doLink {
-		execp([]string{path.Join(envbin, arch+"l"), "-o", target, target+"."+arch}, "")
+		buildit.Link(target)
 	}
 	os.Exec(path.Join(curdir, target), args, os.Environ())
 	fmt.Fprintf(os.Stderr, "Error running %v\n", args)

@@ -1,17 +1,27 @@
-package slice¤a
+package slice¤a¤b
 
 // Here we have some utility slice routines
 
-// Map provides an in-place map, meaning it modifies its input slice.
-// If you still want that data, use the Map in package slices.
-func Map(f func(¤a) ¤a, slice []¤a) {
+// Map1 provides an in-place map, meaning it modifies its input slice.
+// If you still want that data, use the Map function.
+func Map1(f func(¤a) ¤a, slice []¤a) {
 	for i,v := range slice {
 		slice[i] = f(v)
 	}
 }
 
-func Fold(f func(¤a, ¤a) ¤a, id ¤a, slice []¤a) ¤a {
-	x := id
+// Map provides an out-of-place map, meaning it does not modify its
+// input slice.  It therefore has the advantage that you can Map from
+// one type of slice to another.
+func Map(f func(¤a) ¤b, slice []¤a) []¤b {
+	out := make([]¤b, len(slice))
+	for i,v := range slice {
+		out[i] = f(v)
+	}
+	return out
+}
+
+func Fold(f func(¤b, ¤a) ¤b, x ¤b, slice []¤a) ¤b {
   for _, v := range slice {
     x = f(x, v)
   }

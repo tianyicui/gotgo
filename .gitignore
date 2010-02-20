@@ -1,6 +1,10 @@
 *.8
 *~
 go
+*.got.go
+*.gotit.go
+*.gotit
 *ø*.go
 example
 gotit
+got2gotit

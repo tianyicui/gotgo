@@ -1,0 +1,22 @@
+// Copyright 2010 David Roundy, roundyd@physics.oregonstate.edu.
+// All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+package finalizer(type a)
+
+// This package is nothing more than a more-typesafe version of
+// runtime.SetFinalizer.  I don't think it's worth the effort, but
+// it's a nice small demo of where we could eliminate some dynamic
+// typing in the standard libraries, if we supported generics of this
+// sort.
+
+import `runtime`
+
+// The argument x must be a pointer to an object allocated by calling
+// new or by taking the address of a composite literal. If this is not
+// true, finalizer.Set aborts the program.
+
+func Set(x *a, f func(* a)) {
+	runtime.SetFinalizer(x, f)
+}
