@@ -86,13 +86,6 @@ func Link(sourcePath string) (error os.Error) {
 	return execp(dir, path.Join(envbin, arch+"l"), "-o", filename, filename+"."+arch)
 }
 
-func GetPackageName(pname string, types []string) string {
-	for _,v := range types {
-		pname += "龍"+v // 龍 means dragon... not type
-	}
-	return pname
-}
-
 func getType(s *scanner.Scanner) (t string, pos token.Position, tok token.Token, lit []byte)  {
 	pos, tok, lit = s.Scan()
 	for tok != token.RPAREN && tok != token.COMMA {
