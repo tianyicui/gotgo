@@ -11,8 +11,6 @@ import (
 	"fmt"
 	"exec"
 	"path"
-	"strings"
-	"unicode"
 	"go/scanner"
 	"go/token"
 )
@@ -86,22 +84,6 @@ func Link(sourcePath string) (error os.Error) {
 	sourcePath = path.Clean(sourcePath)
 	dir, filename := path.Split(sourcePath)
 	return execp(dir, path.Join(envbin, arch+"l"), "-o", filename, filename+"."+arch)
-}
-
-func GetPackageName(pname string, types []string) string {
-	for _,v := range types {
-		pname += "龍"+v // 龍 means dragon... not type
-	}
-	return strings.Map(cleanRune, pname)
-}
-
-func cleanRune(ch int) int {
-	if 'a' <= ch && ch <= 'z' || 'A' <= ch && ch <= 'Z' ||
-		ch == '_' || ch >= 0x80 && unicode.IsLetter(ch) ||
-		'0' <= ch && ch <= '9' || ch >= 0x80 && unicode.IsDigit(ch) {
-		return ch
-	}
-	return 'ø'
 }
 
 func getType(s *scanner.Scanner) (t string, pos token.Position, tok token.Token, lit []byte)  {
