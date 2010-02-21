@@ -70,14 +70,12 @@ func createGofile(sourcePath string) (error os.Error) {
 	switch n := strings.Index(sourcePath, "("); n {
 	case -1:
 	default:
-		fmt.Println("Figuring out how to build "+sourcePath)
 		basename := sourcePath[0:n]
 		typesname := sourcePath[n+1:]
 		gotname := basename + ".got"
 		gotitname := gotname + "it"
-		fmt.Println("Want to build "+gotitname+" from "+gotname)
 		if needit,_ := shouldUpdate(gotname, gotitname); needit {
-			fmt.Println("Building "+gotitname+" from "+gotname)
+			//fmt.Println("Building "+gotitname+" from "+gotname)
 			error = buildit.Got2Gotit(gotname)
 			if error != nil { return }
 		}
@@ -113,10 +111,7 @@ func compileRecursively(sourcePath string) (error os.Error) {
 		}
 	}
 	if needcompile {
-		fmt.Println("About to recompile", sourcePath)
 		error = buildit.Compile(sourcePath+".go")
-	} else {
-		fmt.Println("Don't need to recompile", sourcePath)
 	}
 	return
 }

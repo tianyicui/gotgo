@@ -62,7 +62,7 @@ func Compile(sourcePath string) (error os.Error) {
 	if len(sourcePath) > 3 && sourcePath[len(sourcePath)-3:] == ".go" {
 		sourcePath = sourcePath[0:len(sourcePath)-3]
 	}
-	fmt.Println("Compiling "+sourcePath)
+	//fmt.Println("Compiling "+sourcePath)
 	sourcePath = path.Clean(sourcePath)
 	dir, filename := path.Split(sourcePath)
 	return execp(dir, path.Join(envbin, arch+"g"), filename+".go")
@@ -80,7 +80,7 @@ func Link(sourcePath string) (error os.Error) {
 	if len(sourcePath) > 3 && sourcePath[len(sourcePath)-3:] == ".go" {
 		sourcePath = sourcePath[0:len(sourcePath)-3]
 	}
-	fmt.Println("Linking "+sourcePath)
+	//fmt.Println("Linking "+sourcePath)
 	sourcePath = path.Clean(sourcePath)
 	dir, filename := path.Split(sourcePath)
 	return execp(dir, path.Join(envbin, arch+"l"), "-o", filename, filename+"."+arch)
@@ -154,12 +154,11 @@ func GetGofile(fname, got string, types []string) os.Error {
 	args := make([]string, len(types)+1)
 	args[0] = got+".gotit"
 	for i,t := range types { args[i+1] = t }
-	fmt.Println("Running "+args[0])
-	fmt.Println("execpout",fname, ".", args)
+	//fmt.Println("Running "+args[0])
 	return execpout(fname, ".", args)
 }
 
 func Got2Gotit(fname string) os.Error {
-	fmt.Println("Running got2gotit "+fname)
+	//fmt.Println("Running got2gotit "+fname)
 	return execp(".", "got2gotit", fname)
 }
