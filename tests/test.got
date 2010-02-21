@@ -1,22 +1,22 @@
-package test¤type
+package test(type foo)
 
 // This is a very simple template package demonstrating how some very
 // simple generic functions can be written that wouldn't otherwise be
 // expressible in go!
 
-func Head(x []¤type) ¤type {
+func Head(x []foo) foo {
 	return x[0]
 }
 
-func Tail(x []¤type) []¤type {
+func Tail(x []foo) []foo {
 	return x[1:]
 }
 
-func Append(x ¤type, slice *[]¤type) {
+func Append(x foo, slice *[]foo) {
 	length := len(*slice)
   if length + 1 > cap(*slice) {  // reallocate
     // Allocate double what's needed, for future growth.
-    newSlice := make([]¤type, (length + 1)*2)
+    newSlice := make([]foo, (length + 1)*2)
     // Copy data (could use bytes.Copy()).
     for i, c := range *slice {
       newSlice[i] = c

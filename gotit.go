@@ -106,16 +106,21 @@ func compileRecursively(sourcePath string) (error os.Error) {
 	if error != nil { return }
 	needcompile, _ := shouldUpdate(sourcePath+".go", sourcePath+"."+arch)
 	for i, _ := range localImports {
-		createGofile(i)
-		compileRecursively(i)
-		if up, _ := shouldUpdate(i+"."+arch, sourcePath+"."+arch); up {
+		error = createGofile(i)
+		if error != nil { return }
+		error = compileRecursively(i)
+		if error != nil { return }
+		if up, error := shouldUpdate(i+"."+arch, sourcePath+"."+arch); up {
 			needcompile = true
 		}
 	}
 	if needcompile {
-		buildit.Compile(sourcePath+".go")
+		fmt.Println("About to recompile", sourcePath)
+		error = buildit.Compile(sourcePath+".go")
+	} else {
+		fmt.Println("Don't need to recompile", sourcePath)
 	}
-	return nil
+	return
 }
 
 func shouldUpdate(sourceFile, targetFile string) (doUpdate bool, error os.Error) {
@@ -142,7 +147,8 @@ func main() {
 		target = target[0 : len(target)-3]
 	}
 
-	compileRecursively(target)
+	error := compileRecursively(target)
+	if error != nil { return } // FIXME: report error
 
 	doLink, _ := shouldUpdate(target+"."+arch, target)
 	if doLink {

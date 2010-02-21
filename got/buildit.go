@@ -48,7 +48,7 @@ func execpout(out, dir string, args []string) (error os.Error) {
 	if error != nil { return }
 	outf, error := os.Open(out, os.O_WRONLY+os.O_CREAT+os.O_TRUNC, 0666)
 	if error != nil { return }
-	p, error := os.ForkExec(args0, args, os.Environ(), dir, []*os.File{outf, os.Stdout, os.Stderr})
+	p, error := os.ForkExec(args0, args, os.Environ(), dir, []*os.File{os.Stdin, outf, os.Stderr})
 	if error != nil { return }
 	m, error := os.Wait(p, 0)
 	if error != nil { return }
@@ -155,6 +155,7 @@ func GetGofile(fname, got string, types []string) os.Error {
 	args[0] = got+".gotit"
 	for i,t := range types { args[i+1] = t }
 	fmt.Println("Running "+args[0])
+	fmt.Println("execpout",fname, ".", args)
 	return execpout(fname, ".", args)
 }
 
