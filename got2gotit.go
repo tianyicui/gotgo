@@ -42,7 +42,7 @@ func writeGotGotit(filename string) (e os.Error) {
 		string(x[lastpos:])+"\n"+typedecs), 0666)
 	if e != nil { return }
 	// Now let's write the cool gotit.go file...
-	out, e := os.Open(filename+".gotit.go", os.O_WRONLY+os.O_CREAT+os.O_TRUNC,0666)
+	out, e := os.Open(filename+"it.go", os.O_WRONLY+os.O_CREAT+os.O_TRUNC,0666)
 	if e != nil { return }
 	fmt.Fprintf(out, `package main
 
@@ -115,8 +115,8 @@ func main() {
 	dieOn(buildit.Compile(gotname + ".go"))
 	//buildit.CleanCompile(gotname + ".go")
 	//os.Remove(gotname+".go")
-	dieOn(buildit.Compile(gotname + ".gotit.go"))
-	dieOn(buildit.Link(gotname + ".gotit.go"))
-	//buildit.CleanCompile(gotname + ".gotit.go")
-	//os.Remove(gotname+".gotit.go")
+	dieOn(buildit.Compile(gotname + "it.go"))
+	dieOn(buildit.Link(gotname + "it.go"))
+	//buildit.CleanCompile(gotname + "it.go")
+	//os.Remove(gotname+"it.go")
 }

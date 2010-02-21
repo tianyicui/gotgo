@@ -1,5 +1,5 @@
 set -ev
 
-make
+make test
 
 ./gotit example.go

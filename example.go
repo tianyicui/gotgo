@@ -5,16 +5,16 @@ package main
 import (
 	"fmt"
 	ints "./demo/slice(int)"
-	"./tests/test(string)"
-	"./tests/test(int)"
+	stringtest "./tests/test(string)"
+	inttest "./tests/test(int)"
 	list "./demo/list(int)"
 )
 
 func main() {
 	ss := []string{"hello","world"}
 	is := []int{5,4,3,2,1}
-	fmt.Println("Head(ss)", testøstring.Head(ss))
-	fmt.Println("Tail(is)", testøint.Tail(is))
+	fmt.Println("Head(ss)", stringtest.Head(ss))
+	fmt.Println("Tail(is)", inttest.Tail(is))
 	// Doesn't the following give you nightmares of lisp?
 	fmt.Println(list.Cdr(list.Cons(1,list.Cons(2,list.Cons(3,nil)))))
 

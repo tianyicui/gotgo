@@ -74,7 +74,7 @@ func createGofile(sourcePath string) (error os.Error) {
 		basename := sourcePath[0:n]
 		typesname := sourcePath[n+1:]
 		gotname := basename + ".got"
-		gotitname := gotname + ".gotit"
+		gotitname := gotname + "it"
 		fmt.Println("Want to build "+gotitname+" from "+gotname)
 		if needit,_ := shouldUpdate(gotname, gotitname); needit {
 			fmt.Println("Building "+gotitname+" from "+gotname)
@@ -88,7 +88,6 @@ func createGofile(sourcePath string) (error os.Error) {
 			scan.Init(sourcePath, strings.Bytes(typesname), nil, 0)
 			types, error := buildit.TypeList(&scan)
 			if error != nil { return }
-			fmt.Println("The types are ",types)
 			error = buildit.GetGofile(sourcePath+".go", basename+".got", types)
 			if error != nil { return }
 		}
@@ -97,7 +96,6 @@ func createGofile(sourcePath string) (error os.Error) {
 }
 
 func compileRecursively(sourcePath string) (error os.Error) {
-	// We should consider ¤ and ø from ctrl-x 8 $ and ctrl-x 8 /o respectively
 	sourcePath = path.Clean(sourcePath)
 	if _, exists := compiledAlready[sourcePath]; exists {
 		return nil
@@ -110,7 +108,7 @@ func compileRecursively(sourcePath string) (error os.Error) {
 		if error != nil { return }
 		error = compileRecursively(i)
 		if error != nil { return }
-		if up, error := shouldUpdate(i+"."+arch, sourcePath+"."+arch); up {
+		if up, _ := shouldUpdate(i+"."+arch, sourcePath+"."+arch); up {
 			needcompile = true
 		}
 	}

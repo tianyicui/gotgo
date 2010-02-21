@@ -25,5 +25,5 @@ func (l *List) String() string {
 	if l == nil {
 		return "[]"
 	}
-	return fmt.Sprintf("%v",l.Data) + ":" + l.Next.String()
+	return fmt.Sprint(l.Data,": ", l.Next)
 }
