@@ -14,24 +14,24 @@ You can compile `gotit` by just typing
 
 and you can run it on an example program by typing
 
-    ./go example.go
+    ./go tests/example.go
 
 or
 
-    make example
-    ./example
+    make tests/example
+    ./tests/example
 
 either of which will compile `example.go` and the three packages
-`tests/test.got`, `demo/slice.got` and `demo/list.got` and run the
-resulting executable.  You can examine the
-[Makefile](http://github.com/droundy/gotit/blob/master/demo/slice.got)
-to see how to integrate `gotit` into your own build system.
+`tests/test.got`, `tests/demo/slice.got` and `tests/demo/list.got` and
+run the resulting executable.  You can examine the [Makefile][1] to
+see how to integrate `gotit` into your own build system.
 
 If you just want to see what a template package will look like, check
-out
-[slice.got](http://github.com/droundy/gotit/blob/master/demo/slice.got),
-which is a simple package exporting handy functions for slices, such
-as Map, Fold, Filter, Append, Cat (concat).
+out [slice.got][2], which is a simple package exporting handy
+functions for slices, such as Map, Fold, Filter, Append, Cat (concat).
+
+[1]: http://github.com/droundy/gotit/blob/master/Makefile
+[2]: http://github.com/droundy/gotit/blob/master/tests/demo/slice.got
 
 The got file
 ============
@@ -192,12 +192,14 @@ Limitations
 
   where `defaultTypeForA` is the "default type" specified for the type
   parameter `a`.  This will verify that the given type is indeed
-  [assignment-compatible](http://golang.org/doc/go_spec.html#Assignment_compatibility)
+  [assignment-compatible][3]
   with the default type.  For an interface as the default type, this
   will mean that the requested type satisfies the interface, and for
   primitives (e.g. int) as the default type, it means that the
   specified type is "similar" in some way that I only vaguely
   understand (but hopefully is helpful).
+
+[3]: http://golang.org/doc/go_spec.html#Assignment_compatibility
 
 Problems solved by gotit
 ------------------------

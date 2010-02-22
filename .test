@@ -2,4 +2,4 @@ set -ev
 
 make test
 
-./gotit example.go
+./gotit tests/example.go
