@@ -1,153 +1,122 @@
-// Copyright 2009 Dimiter Stanev, malkia@gmail.com.
-// Copyright 2010 David Roundy, roundyd@physics.oregonstate.edu.
-// All rights reserved.
-// Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file.
-
 package main
 
 import (
 	"os"
 	"fmt"
-	"io/ioutil"
-	"go/parser"
-	"go/scanner"
-	"go/ast"
 	"strings"
-	"strconv"
-	"path"
+	"io/ioutil"
+	"go/token"
+	"go/scanner"
 	"./got/buildit"
 )
 
-func getmap(m map[string]string, k string) (v string) {
-	v, ok := m[k]
-	if !ok {
-		v = ""
+func writeGotGotit(filename string) (e os.Error) {
+	x, e := ioutil.ReadFile(filename)
+	if e != nil { return }
+	var scan scanner.Scanner
+	scan.Init(filename, x, nil, 0)
+	tok := token.COMMA // anything but EOF or PACKAGE
+	for tok != token.EOF && tok != token.PACKAGE {
+		_, tok, _ = scan.Scan()
 	}
-	return
-}
+	if tok == token.EOF { return os.NewError("Unexpected EOF...") }
+	_, tok, pname := scan.Scan()
+	if tok != token.IDENT {
+		return os.NewError("Expected package ident, not "+string(pname))
+	}
+	_, tok, lit := scan.Scan()
+	if tok != token.LPAREN {
+		return os.NewError("Expected (, not "+string(lit))
+	}
+	params, types, restpos, e := buildit.GetTypes(&scan)
+	if e != nil { return }
+	typedecs := ""
+	vartypes := make(map[string]string)
+	for i,t := range types {
+		vartypes[params[i]] = t
+		typedecs += "type "+ params[i] + " " + t + "\n"
+	}
+	lastpos := restpos.Offset+1
+	e = ioutil.WriteFile(filename+".go",
+		strings.Bytes("package "+string(pname)+"\n"+
+		string(x[lastpos:])+"\n"+typedecs), 0666)
+	if e != nil { return }
+	// Now let's write the cool gotit.go file...
+	out, e := os.Open(filename+"it.go", os.O_WRONLY+os.O_CREAT+os.O_TRUNC,0666)
+	if e != nil { return }
+	fmt.Fprintf(out, `package main
 
-var (
-	curdir, _ = os.Getwd()
-	envbin    = os.Getenv("GOBIN")
-	arch      = getmap(map[string]string{"amd64": "6", "386": "8", "arm": "5"}, os.Getenv("GOARCH"))
-	compiledAlready = make(map[string]bool)
-)
+import ("os"; "fmt"; "unicode"; "strings")
 
-func getLocalImports(filename string) (imports map[string]bool, error os.Error) {
-	source, error := ioutil.ReadFile(filename)
-	if error != nil {
-		return
+func cleanRune(ch int) int {
+	if 'a' <= ch && ch <= 'z' || 'A' <= ch && ch <= 'Z' ||
+		ch == '_' || ch >= 0x80 && unicode.IsLetter(ch) ||
+		'0' <= ch && ch <= '9' || ch >= 0x80 && unicode.IsDigit(ch) {
+		return ch
 	}
-	file, error := parser.ParseFile(filename, source, nil, parser.ImportsOnly)
-	if error != nil {
-		return
-	}
-	for _, importDecl := range file.Decls {
-		importDecl, ok := importDecl.(*ast.GenDecl)
-		if ok {
-			for _, importSpec := range importDecl.Specs {
-				importSpec, ok := importSpec.(*ast.ImportSpec)
-				if ok {
-					for _, importPath := range importSpec.Path {
-						importPath, _ := strconv.Unquote(string(importPath.Value))
-						if len(importPath) > 0 && importPath[0] == '.' {
-							if imports == nil {
-								imports = make(map[string]bool)
-							}
-							dir, _ := path.Split(filename)
-							imports[path.Join(dir, path.Clean(importPath))] = true
-						}
-					}
-				}
-			}
-		}
-	}
-	return
-}
-
-func createGofile(sourcePath string) (error os.Error) {
-	switch n := strings.Index(sourcePath, "("); n {
-	case -1:
-	default:
-		basename := sourcePath[0:n]
-		typesname := sourcePath[n+1:]
-		gotname := basename + ".got"
-		gotitname := gotname + "it"
-		if needit,_ := shouldUpdate(gotname, gotitname); needit {
-			//fmt.Println("Building "+gotitname+" from "+gotname)
-			error = buildit.Got2Gotit(gotname)
-			if error != nil { return }
-		}
-		goname := sourcePath + ".go"
-		if needit,_ := shouldUpdate(gotitname, goname); needit {
-			// first scan the type parameters
-			var scan scanner.Scanner
-			scan.Init(sourcePath, strings.Bytes(typesname), nil, 0)
-			types, error := buildit.TypeList(&scan)
-			if error != nil { return }
-			error = buildit.GetGofile(sourcePath+".go", basename+".got", types)
-			if error != nil { return }
-		}
-	}
-	return
-}
-
-func compileRecursively(sourcePath string) (error os.Error) {
-	sourcePath = path.Clean(sourcePath)
-	if _, exists := compiledAlready[sourcePath]; exists {
-		return nil
-	}
-	localImports, error := getLocalImports(sourcePath+".go")
-	if error != nil { return }
-	needcompile, _ := shouldUpdate(sourcePath+".go", sourcePath+"."+arch)
-	for i, _ := range localImports {
-		error = createGofile(i)
-		if error != nil { return }
-		error = compileRecursively(i)
-		if error != nil { return }
-		if up, _ := shouldUpdate(i+"."+arch, sourcePath+"."+arch); up {
-			needcompile = true
-		}
-	}
-	if needcompile {
-		error = buildit.Compile(sourcePath+".go")
-	}
-	return
-}
-
-func shouldUpdate(sourceFile, targetFile string) (doUpdate bool, error os.Error) {
-	sourceStat, error := os.Lstat(sourceFile)
-	if error != nil {
-		return false, error
-	}
-	targetStat, error := os.Lstat(targetFile)
-	if error != nil {
-		return true, error
-	}
-	return targetStat.Mtime_ns < sourceStat.Mtime_ns, error
+	return 'ø'
 }
 
 func main() {
-	args := os.Args[1:]
-	if len(args) == 0 {
-		fmt.Fprintln(os.Stderr, "go main-program [arg0 [arg1 ...]]")
+    pname := "%s"
+`, pname)
+	for i,t := range types {
+		if i > 0 && t == params[0] {
+			fmt.Fprintf(out, `
+    %s := %s`, params[i], params[0])
+		} else {
+			fmt.Fprintf(out, `
+    %s := "%s"`, params[i], t)
+		}
+		fmt.Fprintf(out, `
+    if len(os.Args) > %d {
+        %s = os.Args[%d]
+    }
+    pname += "龍"+%s
+`, i+1, params[i], i+1, params[i]);
+	}
+	fmt.Fprint(out,`
+    fmt.Printf("package %s\n", strings.Map(cleanRune,pname))
+`)
+	pos,tok,lit := scan.Scan();
+	for tok != token.EOF {
+		if _,ok := vartypes[string(lit)]; ok {
+			chunks := strings.Split(string(x[lastpos:pos.Offset]),"`",0)
+			goodchunk := strings.Join(chunks, "`+\"`\"+`")
+			fmt.Fprintf(out, "    fmt.Printf(`%s`)\n", goodchunk)
+			fmt.Fprintf(out, "    fmt.Print(%s)\n", lit)
+			lastpos = pos.Offset + len(lit)
+		}
+		pos,tok,lit = scan.Scan();
+	}
+	chunks := strings.Split(string(x[lastpos:]),"`",0)
+	goodchunk := strings.Join(chunks, "`+\"`\"+`")
+	fmt.Fprintf(out, "    fmt.Printf(`%s`)\n", goodchunk)
+	fmt.Fprintf(out, "}\n")
+	return
+}
+
+func dieOn(e os.Error) {
+	if e != nil {
+		fmt.Fprintln(os.Stderr, e)
 		os.Exit(1)
 	}
+}
 
-	target := path.Clean(args[0])
-	if path.Ext(target) == ".go" {
-		target = target[0 : len(target)-3]
+func main() {
+	if len(os.Args) !=  2 {
+		dieOn(os.NewError("got2gotit requires one argument"))
 	}
-
-	error := compileRecursively(target)
-	if error != nil { return } // FIXME: report error
-
-	doLink, _ := shouldUpdate(target+"."+arch, target)
-	if doLink {
-		buildit.Link(target)
+	gotname := os.Args[1]
+	if gotname[len(gotname)-4:] != ".got" {
+		dieOn(os.NewError("the argument should end with .got"))
 	}
-	os.Exec(path.Join(curdir, target), args, os.Environ())
-	fmt.Fprintf(os.Stderr, "Error running %v\n", args)
-	os.Exit(1)
+	dieOn(writeGotGotit(gotname))
+	dieOn(buildit.Compile(gotname + ".go"))
+	//buildit.CleanCompile(gotname + ".go")
+	//os.Remove(gotname+".go")
+	dieOn(buildit.Compile(gotname + "it.go"))
+	dieOn(buildit.Link(gotname + "it.go"))
+	//buildit.CleanCompile(gotname + "it.go")
+	//os.Remove(gotname+"it.go")
 }

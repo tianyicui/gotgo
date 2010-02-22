@@ -153,5 +153,5 @@ func GetGofile(fname, got string, types []string) os.Error {
 
 func Got2Gotit(fname string) os.Error {
 	//fmt.Println("Running got2gotit "+fname)
-	return execp(".", "got2gotit", fname)
+	return execp(".", "gotit", fname)
 }

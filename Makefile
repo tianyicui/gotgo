@@ -4,7 +4,7 @@
 # Use of this source code is governed by a BSD-style
 # license that can be found in the LICENSE file.
 
-all: gotit got2gotit
+all: go gotit
 
 include $(GOROOT)/src/Make.$(GOARCH)
 
@@ -14,14 +14,14 @@ include $(GOROOT)/src/Make.$(GOARCH)
 .go.$(O):
 	cd `dirname "$<"`; $(GC) `basename "$<"`
 .got.gotit:
-	./got2gotit "$<"
+	./gotit "$<"
 
 gotit.$(O): gotit.go got/buildit.$(O)
-got2gotit.$(O): got2gotit.go got/buildit.$(O)
+go.$(O): go.go got/buildit.$(O)
 
 gotit: gotit.$(O)
 	$(LD) -o $@ $<
-got2gotit: got2gotit.$(O)
+go: go.$(O)
 	$(LD) -o $@ $<
 
 test: all example
@@ -33,9 +33,9 @@ example.$(O): example.go tests/test(string).$(O) tests/test(int).$(O) \
 example: example.$(O)
 	$(LD) -o $@ $<
 
-tests/test.gotit: got2gotit
-demo/slice.gotit: got2gotit
-demo/list.gotit: got2gotit
+tests/test.gotit: gotit
+demo/slice.gotit: gotit
+demo/list.gotit: gotit
 
 tests/test(string).go: tests/test.gotit
 	./tests/test.gotit string > "$@"
