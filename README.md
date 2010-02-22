@@ -1,18 +1,9 @@
-gotit
-=====
+Gotit, Mark II
+==============
 
-Gotit is two things.  One is a simple runner for .go programs, which
-is based on "go-runner", which was created by Dimiter Stanev.  The
-other is a prototype for a mechanisms for adding generics to go.  This
-page will primarily be about the latter, which is of wider interest,
-as there are numerous programs out there for automating the build of
-your go files.
-
-Gotit has limited functionality when building programs.  Most notably,
-it won't work with locally included packages that are named
-differently than their corresponding source files. This implies that
-it's one local package per source file.  This limitation should be
-largely irrelevant to the generics mechanism.
+This document describes the second iteration of my attempt at a
+reasoonable implementation of generics for [go](http://golang.org)
+based on the idea of template packages.
 
 Quick start
 -----------
@@ -23,126 +14,192 @@ You can compile `gotit` by just typing
 
 and you can run it on an example program by typing
 
-    ./gotit example.go
+    ./go tests/example.go
 
-which will cause it to compile `example.go` and the three packages
-`test.got`, `slice.got` and `list.got` and run the resulting
-executable.
+or
+
+    make tests/example
+    ./tests/example
+
+either of which will compile `example.go` and the three packages
+`tests/test.got`, `tests/demo/slice.got` and `tests/demo/list.got` and
+run the resulting executable.  You can examine the [Makefile][1] to
+see how to integrate `gotit` into your own build system.
 
 If you just want to see what a template package will look like, check
-out
-[slice.got](http://github.com/droundy/gotit/blob/master/slice.got),
-which is a simple package exporting handy functions for slices, such
-as Map, Fold, Filter, Append, Cat (concat).
+out [slice.got][2], which is a simple package exporting handy
+functions for slices, such as Map, Fold, Filter, Append, Cat (concat).
 
-Package templating for generics
--------------------------------
+[1]: http://github.com/droundy/gotit/blob/master/Makefile
+[2]: http://github.com/droundy/gotit/blob/master/tests/demo/slice.got
 
-The mechanism for generics that I'm experimenting with it is to
-parametrize *packages* according to types.  I am told that this is
-similar to the ML module system, but don't know much about that.  It
-achieves similar goals to the C++ template approach.
+The got file
+============
 
-The idea is to create files with a `.got` extention (which stands for
-"go template"), which begin with
+A template package is contained in a got file, ending with the `.got`
+extension.  As you might be able to guess, "got" stands for "go
+template".  In the future, this should be extended so a template
+package can have multiple source files, just like ordinary packages.
 
-    package mylist¤type
+The got file differs from an ordinary go file only in its package
+line, which will be something like
 
-where the `¤` character in `¤type` makes this not a valid go file (and
-thus easy to recognize).  The `.got` file will contain multiple
-references to `¤type` in spots where a type is expected.  An ordinary
-go file can use this package with an import such as
+    package slice(type a, type b a)
 
-    import "./mylistøstring"
+This defines a package template named "slice", with two type
+parameters.  The first could be any type, which will be called "a",
+and the second type, called "b" will default to be the same as "a", if
+no second type parameter is provided.  The default type argument is
+optional, and will itself default to interface{}.  The default type
+should be either an interface type, or a type defined in terms of
+other template parameters, although I'm not sure whether/how to
+enforce this.  Your got file *must* be able to compile with the
+default type!
 
-Note that the `¤type` has been replaced with `østring` in the import.
-This defines the type of the list.  When `gotit` encounters this
-import, it will make sure the file `mylistøstring.go` has been
-created, and build it if necessary.
+Within this package, the types "a" and "b" will be in scope, so the
+slice got file might contain:
 
-About the build approach
-------------------------
+    func Append(slice []a, datum a) []a {
+        // first expand if needed...
+        slice = slice[0:len(slice)+1]
+        slice[len(slice)-1] = datum
+        return slice
+    }
 
-I chose a preprocessing approach, since this seems like the easiest
-way to experiment with a small language extension.  Since I had
-already been using `go-runner`, it seemed easiest to hard-code the
-pre-processing into that tool (which I renamed `gotit`, since it is
-now quite changed).
+We could also have a function that uses both "a" and "b":
 
-If there is interest in this approach to generics, I expect to create
-a stand-alone tool (probably called `got`) that does just the
-preprocessing, which could easily be integrated into the standard
-Makefile build system (or any other build system).
+    func Map(f func(a) b, slice []a) []b {
+        out := make([]b, len(slice))
+        for i,v := range slice {
+            out[i] = f(v)
+        }
+        return out
+    }
 
-If this approach is even more successful, and makes it into the
-golang.org repository, we'll need to figure out a way to install `got`
-files into a standard location, and will need to figure out how and
-where to appropriately cache the compiled and preprocessed packages.
+Importing a got package
+=======================
 
-About the syntax
-----------------
+If you want to use the above package, you will do so by creating an
+ordinary go file that has a special import statement that specifies
+the types desired.  So, given the above got file, we could write
 
-I don't really like my choice of syntax, and if this approach is
-adopted as an aspect of go itself, I'd expect a better syntax to be
-chosen.  I chose this particular syntax based on a couple of
-considerations.  One is that I wanted go files that import a templated
-package to be vanilla go files, which meant that the templated import
-must be a valid go identifier (letters and numbers).  I arbitrarily
-chose the unicode `ø` letter because it'hard to mistake for an ASCII
-letter.
+    import intslice "./slice(int)"
 
-In the template itself, I needed a way to specify the template
-variables, and wanted something that looks similar to `ø`, but is
-*not* a letter or digit, so that the package name would not be a valid
-identifier, and the translation should be unambiguous.  I chose `¤`
-because it looks similar to `ø`.
+    func foo(x int, xs []int, ...) {
+        ...
+        intslice.Append(xs,x)
 
-I expect neither of these unicode choices to be kept for the long
-term.  Ideally we'd have a syntax that *contains* the template types
-in some way, perhaps sort of like C++'s syntax.  The entire code for
-the `.got` file handling is about thirty lines of code.
+This import is valid go (since the language spec states that the
+interpretation of the import string is implementation-dependent), but
+I'm not sure if it will be accepted by the go compilers.  I'm hoping
+that since it's a valid path name on most file systems, that it will
+work just fine.
+
+The package name of this templated import will be dependent on the
+gotit implementation, so you need to specify your own qualtified
+package name in order to safely use the package.
+
+Getting fancier with interface types
+====================================
+
+We can get a bit fancier in the package specification by using
+interfaces.
+
+    package list(type a fmt.Stringer)
+
+    import fmt "fmt"
+
+    type T struct {
+        Datum a
+        Next *T
+    }
+    func (l T) String() String {
+        if l.Next != nil {
+            return l.Datum.String() + ", " + l.Next.String()
+        } else {
+            return l.Datum.String()
+        }
+    }
+
+This isn't much different from what I've already described, but there
+is (will be) an additional twist that isn't shown, which is that if
+you make the default type an interface, then any type parameter passed
+to the template *must satisfy that interface*! This is valuable
+because it means that you can guarantee that you can't break the
+compile of any client code unless you change the template signature.
+
+Still on the TODO list is figuring out how to properly handle
+templates that require a builtin type, such as
+
+    package maxmin(type a)
+    
+    func max(x,y a) a {
+        if x > y { return x }
+        return y
+    }
+
+This won't work on struct types, and we ought to be able to specify
+that in the package signature.
+
+How does it work?
+=================
+
+I have implemented a simple got compiler (called gotit, barring better
+ideas), which you pass the name of the got file you wish to compile.
+Gotit will parse this file, and first generate a go file for the
+default types, which it will compile---to make sure it compiles, and
+so you can get easy and immediate feedback if you break something.
+This is intended to make the "got" templating language itself closer
+to statically typed than cpp macros or C++ templates.
+
+After compiling the template with its default types, a go program will
+be written (by gotit) which accepts as its arguments a list of
+parameter types and eventually flags indicating any additional imports
+needed to define those types, which will first verify that its
+arguments satisfy the interface constraints in the package, and then
+will write to stdout a go file that can be compiled as that template
+package.
+
+A go build system needs to track down and build imported packages, and
+in order to work with gotit, it needs to know how to build templated
+packages.  An example of such a build system is provided in the go.go
+program, which both builds and runs simple (possibly templated) go
+programs.
+
 
 Limitations
 -----------
 
-- Currently `gotit` can't template using non-builtin types.  To enable
-  this, we'll need to have a way to put the '.' in the type name
-  (e.g. `os.Error`) so that the package name is a valid identifier.
-  e.g. so the import would look something like
+- Currently `gotit` can't template using non-builtin types, because it
+  doesn't know how to add the necessary imports.  To enable
+  this, I'll need to add a flag to `gotit` to specify imports, and the
+  build system will have to figure out the required imports from the
+  import statement, e.g. from
 
-      import "./listøosØError"
-    
-      var errors listøosØError
-  
-  This will also of course require that the preprocessor add the
-  appropriate import statement, which adds a bit more complexity,
-  particularly when packages may be imported with alternate names.
+      import foolist "./demo/list(data.Foo)"
 
-- Currently you can only parameterize a package with one type.  It
-  won't be hard to extend this to support multiple parameters, but
-  this won't mix well with the current simple `ø` prefix, so this will
-  require some re-thinking of syntax, ideally by someone with some
-  expertise in parsing (esp. in parsing go).
+  it would need to figure out what the `data` import means.
 
-Type checking `got` files
--------------------------
+- Type-checking `got` files.  I haven't  yet implemented a check that
+  the provided type satisfies the requested interface.  I plan to do
+  this by adding to the generated go file a small unused function that
+  does something like
 
-One of my complaints with many (most) generic programming systems
-(e.g. cpp macros, C++ templates) is that they generally are not type
-checked.  By which I mean that they act as essentially untypechecked
-macros, and only the resulting expansion is itself typechecked.
+      func unusedForGotIt(data a) {
+          f := func(defaultTypeForA) { }
+          f(defaultTypeForA(a))
+      }
 
-Currently, gotit is subject to the same complaint.  I envision,
-however, that it could be extended with relative ease, although I
-haven't worked out an appropriate syntax.  But if we came up with a
-way to specify that `¤type` must satisfy a given interface (or that it
-must be constructable from numeric literals, or must be something that
-can be added with `+`), then it should be possible to automatically
-create a test file that when compiled verifies that the `got` file
-only requires that interface (or those properties).  This would both
-enable better (and type checked) documentation of the package, and
-verification that additional dependencies don't creep in (e.g. through
-use of methods outside that interface).
+  where `defaultTypeForA` is the "default type" specified for the type
+  parameter `a`.  This will verify that the given type is indeed
+  [assignment-compatible][3]
+  with the default type.  For an interface as the default type, this
+  will mean that the requested type satisfies the interface, and for
+  primitives (e.g. int) as the default type, it means that the
+  specified type is "similar" in some way that I only vaguely
+  understand (but hopefully is helpful).
+
+[3]: http://golang.org/doc/go_spec.html#Assignment_compatibility
 
 Problems solved by gotit
 ------------------------
@@ -155,9 +212,10 @@ Problems solved by gotit
   don't want to reimplement them for every data type you use.
 
 - In go, there is no way to write a generic function whose return type
-  depends on its input.  This is a much more serious shortcoming than
-  the previous one, as it means you can't even write generic functions
-  for the existing built-in generic data structures.  For example,
+  depends on its input, or with two arguments of the same (but
+  variable type).  This is a much more serious shortcoming than the
+  previous one, as it means you can't even write generic functions for
+  the existing built-in generic data structures.  For example,
   consider the generic version of
 
       func Append(x int, xs []int) []int

@@ -24,24 +24,24 @@ gotit: gotit.$(O)
 go: go.$(O)
 	$(LD) -o $@ $<
 
-test: all example
-	./example
+test: all tests/example
+	./tests/example
 
-example.$(O): example.go tests/test(string).$(O) tests/test(int).$(O) \
-	demo/list(int).$(O) demo/slice(int).$(O)
-	$(GC) $<
-example: example.$(O)
+tests/example.$(O): tests/example.go \
+	tests/test(string).$(O) tests/test(int).$(O) \
+	tests/demo/list(int).$(O) tests/demo/slice(int).$(O)
+tests/example: tests/example.$(O)
 	$(LD) -o $@ $<
 
 tests/test.gotit: gotit
-demo/slice.gotit: gotit
-demo/list.gotit: gotit
+tests/demo/slice.gotit: gotit
+tests/demo/list.gotit: gotit
 
 tests/test(string).go: tests/test.gotit
 	./tests/test.gotit string > "$@"
 tests/test(int).go: tests/test.gotit
 	./tests/test.gotit int > "$@"
-demo/list(int).go: demo/list.gotit
-	./demo/list.gotit int > "$@"
-demo/slice(int).go: demo/slice.gotit
-	./demo/slice.gotit int > "$@"
+tests/demo/list(int).go: tests/demo/list.gotit
+	./tests/demo/list.gotit int > "$@"
+tests/demo/slice(int).go: tests/demo/slice.gotit
+	./tests/demo/slice.gotit int > "$@"

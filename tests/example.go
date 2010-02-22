@@ -5,8 +5,8 @@ package main
 import (
 	"fmt"
 	ints "./demo/slice(int)"
-	stringtest "./tests/test(string)"
-	inttest "./tests/test(int)"
+	stringtest "./test(string)"
+	inttest "./test(int)"
 	list "./demo/list(int)"
 )
 
