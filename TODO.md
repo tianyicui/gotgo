@@ -1,7 +1,7 @@
-- Enable munging of '.' in template parameters, so we can use imported
-  types.
+- Enable parsing of template parameters in go.go, so we can use
+  imported types.
 
-- Enable got files with multiple type parameters.
+- Add flag support to gotit so we can add import statements.
 
-- Enable using parameter types as type parameters (to write generics
-  using generics).
+- Verify that types used as parameters actually are compatible with
+  the default type.
