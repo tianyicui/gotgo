@@ -14,7 +14,7 @@ You can compile `gotit` by just typing
 
 and you can run it on an example program by typing
 
-    ./go tests/example.go
+    ./rungo tests/example.go
 
 or
 

@@ -1,6 +1,7 @@
 *.8
 *~
 go
+rungo
 *.got.go
 *.gotit.go
 *.gotit

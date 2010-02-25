@@ -1,5 +1,5 @@
-- Test handling of template parameters containing imported types (like
-  list.List) in go.go.
+- Add test for handling of template parameters containing imported
+  types (like list.List) in rungo.go.
 
-- Verify that types used as parameters actually are compatible with
-  the default type.
+- In general, create a decent test suite, which can also serve as a
+  sample template library.
