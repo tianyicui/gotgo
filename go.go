@@ -34,7 +34,7 @@ var (
 	compiledAlready = make(map[string]bool)
 )
 
-func getLocalImports(filename string) (imports map[string]bool, error os.Error) {
+func getImports(filename string) (imports map[string]bool, names map[string]string, error os.Error) {
 	source, error := ioutil.ReadFile(filename)
 	if error != nil {
 		return
@@ -50,12 +50,15 @@ func getLocalImports(filename string) (imports map[string]bool, error os.Error) 
 				importSpec, ok := importSpec.(*ast.ImportSpec)
 				if ok {
 					importPath, _ := strconv.Unquote(string(importSpec.Path.Value))
-					if len(importPath) > 0 && importPath[0] == '.' {
+					if len(importPath) > 0 {
 						if imports == nil {
 							imports = make(map[string]bool)
+							names = make(map[string]string)
 						}
 						dir, _ := path.Split(filename)
 						imports[path.Join(dir, path.Clean(importPath))] = true
+						names[importSpec.Name.String()] =
+							path.Join(dir, path.Clean(importPath))
 					}
 				}
 			}
@@ -64,7 +67,7 @@ func getLocalImports(filename string) (imports map[string]bool, error os.Error) 
 	return
 }
 
-func createGofile(sourcePath string) (error os.Error) {
+func createGofile(sourcePath string, importMap map[string]string) (error os.Error) {
 	switch n := strings.Index(sourcePath, "("); n {
 	case -1:
 	default:
@@ -84,7 +87,8 @@ func createGofile(sourcePath string) (error os.Error) {
 			scan.Init(sourcePath, strings.Bytes(typesname), nil, 0)
 			types, error := buildit.TypeList(&scan)
 			if error != nil { return }
-			error = buildit.GetGofile(sourcePath+".go", basename+".got", types)
+			error = buildit.GetGofile(sourcePath+".go", basename+".got", types,
+				importMap)
 			if error != nil { return }
 		}
 	}
@@ -96,16 +100,18 @@ func compileRecursively(sourcePath string) (error os.Error) {
 	if _, exists := compiledAlready[sourcePath]; exists {
 		return nil
 	}
-	localImports, error := getLocalImports(sourcePath+".go")
+	allImports, importMap, error := getImports(sourcePath+".go")
 	if error != nil { return }
 	needcompile, _ := shouldUpdate(sourcePath+".go", sourcePath+"."+arch)
-	for i, _ := range localImports {
-		error = createGofile(i)
-		if error != nil { return }
-		error = compileRecursively(i)
-		if error != nil { return }
-		if up, _ := shouldUpdate(i+"."+arch, sourcePath+"."+arch); up {
-			needcompile = true
+	for i, _ := range allImports {
+		if i[0] == '.' { // it's a local import
+			error = createGofile(i, importMap)
+			if error != nil { return }
+			error = compileRecursively(i)
+			if error != nil { return }
+			if up, _ := shouldUpdate(i+"."+arch, sourcePath+"."+arch); up {
+				needcompile = true
+			}
 		}
 	}
 	if needcompile {

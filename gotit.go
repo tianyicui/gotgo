@@ -60,13 +60,17 @@ func cleanRune(ch int) int {
 func main() {
     pname := "%s"
     imports := ""
-    var firstarg int
-    for firstarg:=0; firstarg<len(os.Args); firstarg++ {
-        if os.Args[firstarg] == "--input" {
+    firstarg := 1
+    fmt.Fprintln(os.Stderr, "bye world!!!!")
+    for firstarg=1; firstarg<len(os.Args); firstarg++ {
+        fmt.Fprintln(os.Stderr, "firstarg is now ", firstarg)
+        if os.Args[firstarg] == "--import" {
+            fmt.Fprintln(os.Stderr, "hello world!!!! ", firstarg)
             firstarg++
-            imports += "\nimport "+os.Args[firstarg]
-        } else if os.Args[firstarg][0:len("--input=")] == "--input=" {
-            imports += "\nimport "+os.Args[firstarg][len("--input="):]
+            imports += "\n"+os.Args[firstarg]
+        } else if len(os.Args[firstarg]) > len("--import=") &&
+                  os.Args[firstarg][0:len("--import=")] == "--import=" {
+            imports += "\n"+os.Args[firstarg][len("--import="):]
         } else {
             break;
         }
@@ -81,8 +85,8 @@ func main() {
     %s := "%s"`, params[i], t)
 		}
 		fmt.Fprintf(out, `
-    if len(os.Args) > firstarg + %d {
-        %s = os.Args[firstarg + %d]
+    if len(os.Args) > firstarg + %d - 1 {
+        %s = os.Args[firstarg + %d - 1]
     }
     pname += "龍"+%s
 `, i+1, params[i], i+1, params[i]);

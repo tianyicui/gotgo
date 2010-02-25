@@ -11,6 +11,8 @@ import (
 	"fmt"
 	"exec"
 	"path"
+	"strconv"
+	"strings"
 	"go/scanner"
 	"go/token"
 )
@@ -143,11 +145,23 @@ func TypeList(s *scanner.Scanner) (types []string, error os.Error) {
 	return
 }
 
-func GetGofile(fname, got string, types []string) os.Error {
-	args := make([]string, len(types)+1)
+func append(xs []string, x string) {
+	xs = xs[0:len(xs)+1]
+	xs[len(xs)-1] = x
+}
+
+func GetGofile(fname, got string, types []string, names map[string]string) os.Error {
+	args := make([]string, 4*len(types)+1)
 	args[0] = got+".gotit"
-	for i,t := range types { args[i+1] = t }
-	//fmt.Println("Running "+args[0])
+	for _,t := range types {
+		if strings.Index(t, ".") != -1 {
+			append(args, "--import")
+			im := t[0:strings.Index(t,".")]
+			append(args, "import "+im+" "+strconv.Quote(names[im]))
+		}
+	}
+	for _,t := range types { append(args, t) }
+	fmt.Println("Running "+args[0])
 	return execpout(fname, ".", args)
 }
 

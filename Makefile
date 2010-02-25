@@ -29,6 +29,7 @@ test: all tests/example
 
 tests/example.$(O): tests/example.go \
 	tests/test(string).$(O) tests/test(int).$(O) \
+	tests/demo/slice(list.List).$(O) \
 	tests/demo/list(int).$(O) tests/demo/slice(int).$(O)
 tests/example: tests/example.$(O)
 	$(LD) -o $@ $<
@@ -45,3 +46,5 @@ tests/demo/list(int).go: tests/demo/list.gotit
 	./tests/demo/list.gotit int > "$@"
 tests/demo/slice(int).go: tests/demo/slice.gotit
 	./tests/demo/slice.gotit int > "$@"
+tests/demo/slice(list.List).go: tests/demo/slice.gotit tests/demo/list(int).$(O)
+	./tests/demo/slice.gotit --import 'import list "./list(int)"' list.List > "$@"
