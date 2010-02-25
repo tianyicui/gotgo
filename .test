@@ -2,4 +2,4 @@ set -ev
 
 make test
 
-./go tests/example.go
+./rungo tests/example.go

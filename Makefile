@@ -4,9 +4,12 @@
 # Use of this source code is governed by a BSD-style
 # license that can be found in the LICENSE file.
 
-all: go gotit
+all: rungo gotit
 
 include $(GOROOT)/src/Make.$(GOARCH)
+
+install:
+	cp -f rungo gotit $(QUOTED_GOBIN)
 
 .PHONY: test
 .SUFFIXES: .$(O) .go .got .gotit
@@ -17,11 +20,11 @@ include $(GOROOT)/src/Make.$(GOARCH)
 	./gotit "$<"
 
 gotit.$(O): gotit.go got/buildit.$(O)
-go.$(O): go.go got/buildit.$(O)
+rungo.$(O): rungo.go got/buildit.$(O)
 
 gotit: gotit.$(O)
 	$(LD) -o $@ $<
-go: go.$(O)
+rungo: rungo.$(O)
 	$(LD) -o $@ $<
 
 test: all tests/example
