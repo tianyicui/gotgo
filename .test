@@ -1,5 +1,14 @@
 set -ev
 
+make
+
+./gotimports tests/example.go
+
+test -f 'tests/demo/slice.gotit'
+test -f 'tests/demo/slice(list.List).go'
+test -f 'tests/test(string).go'
+
 make test
 
-./rungo tests/example.go
+./tests/example
+

@@ -17,21 +17,11 @@ import (
 	"strconv"
 	"path"
 	"./got/buildit"
+	"./got/gotit"
 )
-
-func getmap(m map[string]string, k string) (v string) {
-	v, ok := m[k]
-	if !ok {
-		v = ""
-	}
-	return
-}
 
 var (
 	curdir, _ = os.Getwd()
-	envbin    = os.Getenv("GOBIN")
-	arch      = getmap(map[string]string{"amd64": "6", "386": "8", "arm": "5"}, os.Getenv("GOARCH"))
-	compiledAlready = make(map[string]bool)
 )
 
 func getImports(filename string) (imports map[string]bool, names map[string]string, error os.Error) {
@@ -70,15 +60,15 @@ func getImports(filename string) (imports map[string]bool, names map[string]stri
 func createGofile(sourcePath string, importMap map[string]string) (error os.Error) {
 	switch n := strings.Index(sourcePath, "("); n {
 	case -1:
+		// ignore non-templated import...
 	default:
 		basename := sourcePath[0:n]
 		typesname := sourcePath[n+1:]
 		gotname := basename + ".got"
 		gotitname := gotname + "it"
 		if needit,_ := shouldUpdate(gotname, gotitname); needit {
-			//fmt.Println("Building "+gotitname+" from "+gotname)
-			error = buildit.Got2Gotit(gotname)
-			if error != nil { return }
+			error = gotit.Gotit(gotname)
+			if error != nil { return explain("gotit.Gotit", error) }
 		}
 		goname := sourcePath + ".go"
 		if needit,_ := shouldUpdate(gotitname, goname); needit {
@@ -89,33 +79,23 @@ func createGofile(sourcePath string, importMap map[string]string) (error os.Erro
 			if error != nil { return }
 			error = buildit.GetGofile(sourcePath+".go", basename+".got", types,
 				importMap)
-			if error != nil { return }
+			if error != nil { return explain("GetGofile", error) }
 		}
 	}
 	return
 }
 
-func compileRecursively(sourcePath string) (error os.Error) {
+func explain(x string, e os.Error) os.Error {
+	return os.NewError(x + ": " + e.String())
+}
+
+func createImports(sourcePath string) (error os.Error) {
 	sourcePath = path.Clean(sourcePath)
-	if _, exists := compiledAlready[sourcePath]; exists {
-		return nil
-	}
 	allImports, importMap, error := getImports(sourcePath+".go")
-	if error != nil { return }
-	needcompile, _ := shouldUpdate(sourcePath+".go", sourcePath+"."+arch)
+	if error != nil { return explain("getImports "+sourcePath+".go\n", error) }
 	for i, _ := range allImports {
-		if i[0] == '.' { // it's a local import
-			error = createGofile(i, importMap)
-			if error != nil { return }
-			error = compileRecursively(i)
-			if error != nil { return }
-			if up, _ := shouldUpdate(i+"."+arch, sourcePath+"."+arch); up {
-				needcompile = true
-			}
-		}
-	}
-	if needcompile {
-		error = buildit.Compile(sourcePath+".go")
+		error = createGofile(i, importMap)
+		if error != nil { return explain("createGofile", error) }
 	}
 	return
 }
@@ -133,25 +113,19 @@ func shouldUpdate(sourceFile, targetFile string) (doUpdate bool, error os.Error)
 }
 
 func main() {
-	args := os.Args[1:]
-	if len(args) == 0 {
-		fmt.Fprintln(os.Stderr, "go main-program [arg0 [arg1 ...]]")
+	if len(os.Args) != 2 {
+		fmt.Fprintln(os.Stderr, "go main-program GOFILE")
 		os.Exit(1)
 	}
-
-	target := path.Clean(args[0])
+	
+	target := path.Clean(os.Args[1])
 	if path.Ext(target) == ".go" {
 		target = target[0 : len(target)-3]
 	}
 
-	error := compileRecursively(target)
-	if error != nil { return } // FIXME: report error
-
-	doLink, _ := shouldUpdate(target+"."+arch, target)
-	if doLink {
-		buildit.Link(target)
+	error := createImports(target)
+	if error != nil {
+		fmt.Fprintln(os.Stderr, error)
+		os.Exit(1)
 	}
-	os.Exec(path.Join(curdir, target), args, os.Environ())
-	fmt.Fprintf(os.Stderr, "Error running %v\n", args)
-	os.Exit(1)
 }

@@ -32,11 +32,15 @@ var (
 	compiledAlready = make(map[string]bool)
 )
 
+func Explain(x string, e os.Error) os.Error {
+	return os.NewError(x + ": " + e.String())
+}
+
 func execp(dir string, args ...string) (error os.Error) {
 	args0, error := exec.LookPath(args[0])
-	if error != nil { return }
+	if error != nil { return Explain(args[0], error) }
 	p, error := os.ForkExec(args0, args, os.Environ(), dir, []*os.File{os.Stdin, os.Stdout, os.Stderr})
-	if error != nil { return }
+	if error != nil { return Explain("os.ForkExec",error) }
 	m, error := os.Wait(p, 0)
 	if error != nil { return }
 	if m.ExitStatus() != 0 {
@@ -47,13 +51,18 @@ func execp(dir string, args ...string) (error os.Error) {
 
 func execpout(out, dir string, args []string) (error os.Error) {
 	args0, error := exec.LookPath(args[0])
-	if error != nil { return }
+	if error != nil {
+		if _,e := os.Lstat(args[0]); e != nil {
+			return Explain("Couldn't find in path "+args[0], error)
+		}
+		args0 = args[0] // the file is locally available
+	}
 	outf, error := os.Open(out, os.O_WRONLY+os.O_CREAT+os.O_TRUNC, 0666)
-	if error != nil { return }
+	if error != nil { return Explain("Trouble creating "+out, error) }
 	p, error := os.ForkExec(args0, args, os.Environ(), dir, []*os.File{os.Stdin, outf, os.Stderr})
-	if error != nil { return }
+	if error != nil { return Explain("os.ForkExec", error) }
 	m, error := os.Wait(p, 0)
-	if error != nil { return }
+	if error != nil { return Explain("os.Wait", error) }
 	if m.ExitStatus() != 0 {
 		return os.NewError("Command failed with: "+string(int(m.ExitStatus())));
 	}
@@ -64,7 +73,6 @@ func Compile(sourcePath string) (error os.Error) {
 	if len(sourcePath) > 3 && sourcePath[len(sourcePath)-3:] == ".go" {
 		sourcePath = sourcePath[0:len(sourcePath)-3]
 	}
-	//fmt.Println("Compiling "+sourcePath)
 	sourcePath = path.Clean(sourcePath)
 	dir, filename := path.Split(sourcePath)
 	return execp(dir, path.Join(envbin, arch+"g"), filename+".go")
@@ -82,7 +90,6 @@ func Link(sourcePath string) (error os.Error) {
 	if len(sourcePath) > 3 && sourcePath[len(sourcePath)-3:] == ".go" {
 		sourcePath = sourcePath[0:len(sourcePath)-3]
 	}
-	//fmt.Println("Linking "+sourcePath)
 	sourcePath = path.Clean(sourcePath)
 	dir, filename := path.Split(sourcePath)
 	return execp(dir, path.Join(envbin, arch+"l"), "-o", filename, filename+"."+arch)
@@ -145,27 +152,25 @@ func TypeList(s *scanner.Scanner) (types []string, error os.Error) {
 	return
 }
 
-func append(xs []string, x string) {
-	xs = xs[0:len(xs)+1]
-	xs[len(xs)-1] = x
+func append(xs *[]string, x string) {
+	*xs = (*xs)[0:len(*xs)+1]
+	(*xs)[len(*xs)-1] = x
 }
 
 func GetGofile(fname, got string, types []string, names map[string]string) os.Error {
-	args := make([]string, 4*len(types)+1)
-	args[0] = got+".gotit"
+	args := make([]string, 0, 4*len(types)+400)
+	append(&args, got+"it")
 	for _,t := range types {
 		if strings.Index(t, ".") != -1 {
-			append(args, "--import")
+			append(&args, "--import")
 			im := t[0:strings.Index(t,".")]
-			append(args, "import "+im+" "+strconv.Quote(names[im]))
+			append(&args, "import "+im+" "+strconv.Quote(names[im]))
 		}
 	}
-	for _,t := range types { append(args, t) }
-	fmt.Println("Running "+args[0])
-	return execpout(fname, ".", args)
-}
-
-func Got2Gotit(fname string) os.Error {
-	//fmt.Println("Running got2gotit "+fname)
-	return execp(".", "gotit", fname)
+	for _,t := range types { append(&args, t) }
+	error := execpout(fname, ".", args)
+	if error != nil {
+		return Explain("execpout "+args[0]+": ", error)
+	}
+	return nil
 }

@@ -14,17 +14,20 @@ You can compile `gotit` by just typing
 
 and you can run it on an example program by typing
 
-    ./rungo tests/example.go
+    ./gotimports tests/example.go
 
 or
 
     make tests/example
-    ./tests/example
 
-either of which will compile `example.go` and the three packages
-`tests/test.got`, `tests/demo/slice.got` and `tests/demo/list.got` and
-run the resulting executable.  You can examine the [Makefile][1] to
-see how to integrate `gotit` into your own build system.
+The former will simply generate all the sources for `example.go`,
+which you can then browse through.  The latter will also compile it.
+You can browse the generated sources at
+`tests/demo/slice(list.List).go`, etc. and may also want to examine
+the [Makefile][1] to see how to integrate `gotit` into your own build
+system.  The Makefile has overlapping functionality with the
+`gotimports` program, and is intended to help you understand how gotit
+works.
 
 If you just want to see what a template package will look like, check
 out [slice.got][2], which is a simple package exporting handy
@@ -162,13 +165,13 @@ package.
 
 A go build system needs to track down and build imported packages, and
 in order to work with gotit, it needs to know how to build templated
-packages.  An example of such a build system is provided in the go.go
-program, which both builds and runs simple (possibly templated) go
-programs.
+packages.  An helper for such a build system is provided in the
+gotimports.go program, which (non-recursively) generates any templated
+imports for a go source file.
 
 
-Limitations
------------
+Extra features
+--------------
 
 - Currently `gotit` can't template using non-builtin types, because it
   doesn't know how to add the necessary imports.  To enable

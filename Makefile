@@ -4,12 +4,14 @@
 # Use of this source code is governed by a BSD-style
 # license that can be found in the LICENSE file.
 
-all: rungo gotit
+MYBINFILES=gotit gotimports
+
+all: $(MYBINFILES)
 
 include $(GOROOT)/src/Make.$(GOARCH)
 
 install:
-	cp -f rungo gotit $(QUOTED_GOBIN)
+	cp -f $(MYBINFILES) $(QUOTED_GOBIN)
 
 .PHONY: test
 .SUFFIXES: .$(O) .go .got .gotit
@@ -19,12 +21,13 @@ install:
 .got.gotit:
 	./gotit "$<"
 
-gotit.$(O): gotit.go got/buildit.$(O)
-rungo.$(O): rungo.go got/buildit.$(O)
+got/gotit.$(O): got/buildit.$(O)
+gotit.$(O): gotit.go got/gotit.$(O)
+gotimports.$(O): gotimports.go got/gotit.$(O)
 
 gotit: gotit.$(O)
 	$(LD) -o $@ $<
-rungo: rungo.$(O)
+gotimports: gotimports.$(O)
 	$(LD) -o $@ $<
 
 test: all tests/example
