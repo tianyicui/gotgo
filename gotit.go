@@ -109,7 +109,40 @@ func main() {
 	chunks := strings.Split(string(x[lastpos:]),"`",0)
 	goodchunk := strings.Join(chunks, "`+\"`\"+`")
 	fmt.Fprintf(out, "    fmt.Printf(`%s`)\n", goodchunk)
-	fmt.Fprintf(out, "}\n")
+
+	fmt.Fprint(out,`
+    fmt.Print("// Here we will test that the types parameters are ok...\n")
+    fmt.Printf("\n\nfunc testTypes(arg0 %s`)
+	for i,_ := range types[1:] { fmt.Fprintf(out, `, arg%d %%s`, i+1) }
+	fmt.Fprint(out, `) {\n"`)
+	for _,p := range params { fmt.Fprintf(out, `, %s`, p) }
+	fmt.Fprint(out, `)`)
+	fmt.Fprintf(out, `
+    fmt.Print("    f := func(%s`, types[0])
+	for _,t := range types[1:] {
+		if t == params[0] { t = types[0] }
+		fmt.Fprintf(out, `, %s`, t)
+	}
+  fmt.Fprint(out, `) { } // this func does nothing...\n")`)
+	convert := func(t string, argnum int) string {
+		arg := "arg" + fmt.Sprint(argnum)
+		if strings.Index(t, "{") == -1 {
+			return t+"("+arg+")"
+		}
+		return arg  // it's an interface, so we needn't convert
+	}
+	fmt.Fprintf(out, `
+    fmt.Print("    f(%s`, convert(types[0], 0))
+	for i,t := range types[1:] {
+		if t == params[0] { t = types[0] }
+		fmt.Fprintf(out, `, %s`, convert(t, i+1))
+	}
+	fmt.Fprint(out, `")
+    fmt.Print(")\n}\n")
+`)
+
+	fmt.Fprint(out, "    // End of main function!\n")
+	fmt.Fprint(out, "}\n")
 	return
 }
 
