@@ -61,11 +61,8 @@ func main() {
     pname := "%s"
     imports := ""
     firstarg := 1
-    fmt.Fprintln(os.Stderr, "bye world!!!!")
     for firstarg=1; firstarg<len(os.Args); firstarg++ {
-        fmt.Fprintln(os.Stderr, "firstarg is now ", firstarg)
         if os.Args[firstarg] == "--import" {
-            fmt.Fprintln(os.Stderr, "hello world!!!! ", firstarg)
             firstarg++
             imports += "\n"+os.Args[firstarg]
         } else if len(os.Args[firstarg]) > len("--import=") &&
