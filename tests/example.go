@@ -8,6 +8,7 @@ import (
 	stringtest "./test(string)"
 	inttest "./test(int)"
 	list "./demo/list(int)"
+	// lists "./demo/slice(list.List)"
 )
 
 func main() {
@@ -20,4 +21,6 @@ func main() {
 
 	ints.Map(func (a int) int { return a*2 }, is)
 	fmt.Println("is are now doubled: ", is)
+	// ls := []list.List{ list.Car(1,nil), list.Car(2,nil) }
+	// fmt.Println("I like lists: ", ls)
 }

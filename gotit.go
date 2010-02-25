@@ -59,6 +59,18 @@ func cleanRune(ch int) int {
 
 func main() {
     pname := "%s"
+    imports := ""
+    var firstarg int
+    for firstarg:=0; firstarg<len(os.Args); firstarg++ {
+        if os.Args[firstarg] == "--input" {
+            firstarg++
+            imports += "\nimport "+os.Args[firstarg]
+        } else if os.Args[firstarg][0:len("--input=")] == "--input=" {
+            imports += "\nimport "+os.Args[firstarg][len("--input="):]
+        } else {
+            break;
+        }
+    }
 `, pname)
 	for i,t := range types {
 		if i > 0 && t == params[0] {
@@ -69,14 +81,15 @@ func main() {
     %s := "%s"`, params[i], t)
 		}
 		fmt.Fprintf(out, `
-    if len(os.Args) > %d {
-        %s = os.Args[%d]
+    if len(os.Args) > firstarg + %d {
+        %s = os.Args[firstarg + %d]
     }
     pname += "龍"+%s
 `, i+1, params[i], i+1, params[i]);
 	}
 	fmt.Fprint(out,`
     fmt.Printf("package %s\n", strings.Map(cleanRune,pname))
+    fmt.Printf("%s\n", imports)
 `)
 	pos,tok,lit := scan.Scan();
 	for tok != token.EOF {
@@ -105,7 +118,7 @@ func dieOn(e os.Error) {
 
 func main() {
 	if len(os.Args) !=  2 {
-		dieOn(os.NewError("got2gotit requires one argument"))
+		dieOn(os.NewError("gotit requires one argument"))
 	}
 	gotname := os.Args[1]
 	if gotname[len(gotname)-4:] != ".got" {

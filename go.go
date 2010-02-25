@@ -49,15 +49,13 @@ func getLocalImports(filename string) (imports map[string]bool, error os.Error) 
 			for _, importSpec := range importDecl.Specs {
 				importSpec, ok := importSpec.(*ast.ImportSpec)
 				if ok {
-					for _, importPath := range importSpec.Path {
-						importPath, _ := strconv.Unquote(string(importPath.Value))
-						if len(importPath) > 0 && importPath[0] == '.' {
-							if imports == nil {
-								imports = make(map[string]bool)
-							}
-							dir, _ := path.Split(filename)
-							imports[path.Join(dir, path.Clean(importPath))] = true
+					importPath, _ := strconv.Unquote(string(importSpec.Path.Value))
+					if len(importPath) > 0 && importPath[0] == '.' {
+						if imports == nil {
+							imports = make(map[string]bool)
 						}
+						dir, _ := path.Split(filename)
+						imports[path.Join(dir, path.Clean(importPath))] = true
 					}
 				}
 			}
