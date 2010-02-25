@@ -60,6 +60,12 @@ func Append(slice []a, val a) []a {
 	return slice
 }
 
+func Repeat(val a, n int) []a {
+	out := make([]a, n)
+	for i,_ := range out { out[i] = val }
+	return out
+}
+
 // Cat concatenates two slices, expanding if needed.
 func Cat(slice []a, more []a) []a {
 	length1, length2 := len(slice), len(more)
