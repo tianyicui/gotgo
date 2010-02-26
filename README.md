@@ -93,13 +93,12 @@ the types desired.  So, given the above got file, we could write
         intslice.Append(xs,x)
 
 This import is valid go (since the language spec states that the
-interpretation of the import string is implementation-dependent), but
-I'm not sure if it will be accepted by the go compilers.  I'm hoping
-that since it's a valid path name on most file systems, that it will
-work just fine.
+interpretation of the import string is implementation-dependent), and
+is accepted by the go compiler, so long as the `slice(int)` package
+has been generated and compiled.
 
 The package name of this templated import will be dependent on the
-gotit implementation, so you need to specify your own qualtified
+gotit implementation, so you need to specify your own qualified
 package name in order to safely use the package.
 
 Getting fancier with interface types
@@ -131,18 +130,21 @@ to the template *must satisfy that interface*! This is valuable
 because it means that you can guarantee that you can't break the
 compile of any client code unless you change the template signature.
 
-Still on the TODO list is figuring out how to properly handle
-templates that require a builtin type, such as
+If you write a template that require a numeric type, such as
 
-    package maxmin(type a)
+    package maxmin(type a int)
     
     func max(x,y a) a {
         if x > y { return x }
         return y
     }
 
-This won't work on struct types, and we ought to be able to specify
-that in the package signature.
+then you'll need to use a numeric type as your default.  The gotit
+system will then enforce that this package may only be parametrized
+with types that are assignment-compatible[3] with `int` (or whatever
+default type you choose).
+
+[3]: http://golang.org/doc/go_spec.html#Assignment_compatibility
 
 How does it work?
 =================
@@ -153,56 +155,25 @@ Gotit will parse this file, and first generate a go file for the
 default types, which it will compile---to make sure it compiles, and
 so you can get easy and immediate feedback if you break something.
 This is intended to make the "got" templating language itself closer
-to statically typed than cpp macros or C++ templates.
+to statically typed than cpp macros or C++ templates.  It also means
+that any imports in your template must already be compiled when you
+run gotit.
 
 After compiling the template with its default types, a go program will
 be written (by gotit) which accepts as its arguments a list of
-parameter types and eventually flags indicating any additional imports
-needed to define those types, which will first verify that its
-arguments satisfy the interface constraints in the package, and then
-will write to stdout a go file that can be compiled as that template
-package.
+parameter types and flags indicating any additional imports needed to
+define those types, which will first verify that its arguments satisfy
+the interface constraints in the package, and then will write to
+stdout a go file that can be compiled as that template package.
 
-A go build system needs to track down and build imported packages, and
-in order to work with gotit, it needs to know how to build templated
-packages.  An helper for such a build system is provided in the
-gotimports.go program, which (non-recursively) generates any templated
-imports for a go source file.
+A zeroconf go build system will need to track down and build imported
+packages, and in order to work with `gotit`, will need to know how to
+build templated packages.  An helper for such a build system is
+provided in the gotimports.go program, which (non-recursively)
+generates any templated imports for a go source file.  On the other
+hand, you can also write Makefile rules by hand, as I did for the
+`example.go` program which ships with gotit.
 
-
-Extra features
---------------
-
-- Currently `gotit` can't template using non-builtin types, because it
-  doesn't know how to add the necessary imports.  To enable
-  this, I'll need to add a flag to `gotit` to specify imports, and the
-  build system will have to figure out the required imports from the
-  import statement, e.g. from
-
-      import foolist "./demo/list(data.Foo)"
-
-  it would need to figure out what the `data` import means.
-
-- Type-checking `got` files.  I haven't  yet implemented a check that
-  the provided type satisfies the requested interface.  I plan to do
-  this by adding to the generated go file a small unused function that
-  does something like
-
-      func unusedForGotIt(data a) {
-          f := func(defaultTypeForA) { }
-          f(defaultTypeForA(a))
-      }
-
-  where `defaultTypeForA` is the "default type" specified for the type
-  parameter `a`.  This will verify that the given type is indeed
-  [assignment-compatible][3]
-  with the default type.  For an interface as the default type, this
-  will mean that the requested type satisfies the interface, and for
-  primitives (e.g. int) as the default type, it means that the
-  specified type is "similar" in some way that I only vaguely
-  understand (but hopefully is helpful).
-
-[3]: http://golang.org/doc/go_spec.html#Assignment_compatibility
 
 Problems solved by gotit
 ------------------------
@@ -229,11 +200,10 @@ Problems solved by gotit
   differently), but currently copy-and-paste is the only way to reuse
   this code.  (And similarly for methods...)
 
-Problems not solved by gotit
-----------------------------
-
-- Overloading.  One might like to have a single function that operates
-  on a variety of types.  Gotit doesn't give you this.  You only have
-  to write one version of the function to handle multiple types, but
-  when you *use* the function, you always have to be explicit about
-  which types it's operating on.
+- Compile time penalty of templates.  In C++, using templates means
+  recompiling the template every time you use it.  Using `gotit`,
+  however, templates are separately compiled, just like any other go
+  package.  So a template need be compiled once by gotit, and then
+  once for each type it is parametrized by, which is the minimal
+  number of recompiles consistent with allowing the compiler to
+  generate optimal code for each type.
