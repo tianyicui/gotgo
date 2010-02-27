@@ -3,3 +3,5 @@
 
 - In general, create a decent test suite, which can also serve as a
   sample template library.
+
+- Make gotimports search the GOROOT for templates.
