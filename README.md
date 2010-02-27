@@ -1,14 +1,16 @@
-Gotit, Mark II
-==============
+Gotgo
+=====
 
 This document describes the second iteration of my attempt at a
-reasoonable implementation of generics for [go](http://golang.org)
-based on the idea of template packages.
+reasonable implementation of generics for [go](http://golang.org)
+based on the idea of template packages.  (Note: this package was
+formerly known as gotit... which had unfortunate possible
+mispronunciations.)
 
 Quick start
 -----------
 
-You can compile `gotit` by just typing
+You can compile `gotgo` by just typing
 
     make
 
@@ -24,17 +26,17 @@ The former will simply generate all the sources for `example.go`,
 which you can then browse through.  The latter will also compile it.
 You can browse the generated sources at
 `tests/demo/slice(list.List).go`, etc. and may also want to examine
-the [Makefile][1] to see how to integrate `gotit` into your own build
+the [Makefile][1] to see how to integrate `gotgo` into your own build
 system.  The Makefile has overlapping functionality with the
-`gotimports` program, and is intended to help you understand how gotit
+`gotimports` program, and is intended to help you understand how gotgo
 works.
 
 If you just want to see what a template package will look like, check
 out [slice.got][2], which is a simple package exporting handy
 functions for slices, such as Map, Fold, Filter, Append, Cat (concat).
 
-[1]: http://github.com/droundy/gotit/blob/master/Makefile
-[2]: http://github.com/droundy/gotit/blob/master/tests/demo/slice.got
+[1]: http://github.com/droundy/gotgo/blob/master/Makefile
+[2]: http://github.com/droundy/gotgo/blob/master/tests/demo/slice.got
 
 The got file
 ============
@@ -98,7 +100,7 @@ is accepted by the go compiler, so long as the `slice(int)` package
 has been generated and compiled.
 
 The package name of this templated import will be dependent on the
-gotit implementation, so you need to specify your own qualified
+gotgo implementation, so you need to specify your own qualified
 package name in order to safely use the package.
 
 Getting fancier with interface types
@@ -139,7 +141,7 @@ If you write a template that require a numeric type, such as
         return y
     }
 
-then you'll need to use a numeric type as your default.  The gotit
+then you'll need to use a numeric type as your default.  The gotgo
 system will then enforce that this package may only be parametrized
 with types that are assignment-compatible[3] with `int` (or whatever
 default type you choose).
@@ -149,33 +151,33 @@ default type you choose).
 How does it work?
 =================
 
-I have implemented a simple got compiler (called gotit, barring better
+I have implemented a simple got compiler (called gotgo, barring better
 ideas), which you pass the name of the got file you wish to compile.
-Gotit will parse this file, and first generate a go file for the
+Gotgo will parse this file, and first generate a go file for the
 default types, which it will compile---to make sure it compiles, and
 so you can get easy and immediate feedback if you break something.
 This is intended to make the "got" templating language itself closer
 to statically typed than cpp macros or C++ templates.  It also means
 that any imports in your template must already be compiled when you
-run gotit.
+run gotgo.
 
 After compiling the template with its default types, a go program will
-be written (by gotit) which accepts as its arguments a list of
+be written (by gotgo) which accepts as its arguments a list of
 parameter types and flags indicating any additional imports needed to
 define those types, which will first verify that its arguments satisfy
 the interface constraints in the package, and then will write to
 stdout a go file that can be compiled as that template package.
 
 A zeroconf go build system will need to track down and build imported
-packages, and in order to work with `gotit`, will need to know how to
+packages, and in order to work with `gotgo`, will need to know how to
 build templated packages.  An helper for such a build system is
 provided in the gotimports.go program, which (non-recursively)
 generates any templated imports for a go source file.  On the other
 hand, you can also write Makefile rules by hand, as I did for the
-`example.go` program which ships with gotit.
+`example.go` program which ships with gotgo.
 
 
-Problems solved by gotit
+Problems solved by gotgo
 ------------------------
 
 - In go, there is no way to write a generic data structure, such as a
@@ -201,9 +203,9 @@ Problems solved by gotit
   this code.  (And similarly for methods...)
 
 - Compile time penalty of templates.  In C++, using templates means
-  recompiling the template every time you use it.  Using `gotit`,
+  recompiling the template every time you use it.  Using `gotgo`,
   however, templates are separately compiled, just like any other go
-  package.  So a template need be compiled once by gotit, and then
+  package.  So a template need be compiled once by gotgo, and then
   once for each type it is parametrized by, which is the minimal
   number of recompiles consistent with allowing the compiler to
   generate optimal code for each type.

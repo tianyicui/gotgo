@@ -4,7 +4,7 @@
 # Use of this source code is governed by a BSD-style
 # license that can be found in the LICENSE file.
 
-MYBINFILES=gotit gotimports
+MYBINFILES=gotgo gotimports
 
 all: $(MYBINFILES)
 
@@ -14,18 +14,18 @@ install:
 	cp -f $(MYBINFILES) $(QUOTED_GOBIN)
 
 .PHONY: test
-.SUFFIXES: .$(O) .go .got .gotit
+.SUFFIXES: .$(O) .go .got .gotgo
 
 .go.$(O):
 	cd `dirname "$<"`; $(GC) `basename "$<"`
-.got.gotit:
-	./gotit "$<"
+.got.gotgo:
+	./gotgo "$<"
 
-got/gotit.$(O): got/buildit.$(O)
-gotit.$(O): gotit.go got/gotit.$(O)
-gotimports.$(O): gotimports.go got/gotit.$(O)
+got/gotgo.$(O): got/buildit.$(O)
+gotgo.$(O): gotgo.go got/gotgo.$(O)
+gotimports.$(O): gotimports.go got/gotgo.$(O)
 
-gotit: gotit.$(O)
+gotgo: gotgo.$(O)
 	$(LD) -o $@ $<
 gotimports: gotimports.$(O)
 	$(LD) -o $@ $<
@@ -40,17 +40,17 @@ tests/example.$(O): tests/example.go \
 tests/example: tests/example.$(O)
 	$(LD) -o $@ $<
 
-tests/test.gotit: gotit
-tests/demo/slice.gotit: gotit
-tests/demo/list.gotit: gotit
+tests/test.gotgo: gotgo
+tests/demo/slice.gotgo: gotgo
+tests/demo/list.gotgo: gotgo
 
-tests/test(string).go: tests/test.gotit
-	./tests/test.gotit string > "$@"
-tests/test(int).go: tests/test.gotit
-	./tests/test.gotit int > "$@"
-tests/demo/list(int).go: tests/demo/list.gotit
-	./tests/demo/list.gotit int > "$@"
-tests/demo/slice(int).go: tests/demo/slice.gotit
-	./tests/demo/slice.gotit int > "$@"
-tests/demo/slice(list.List).go: tests/demo/slice.gotit tests/demo/list(int).$(O)
-	./tests/demo/slice.gotit --import 'import list "./list(int)"' list.List > "$@"
+tests/test(string).go: tests/test.gotgo
+	./tests/test.gotgo string > "$@"
+tests/test(int).go: tests/test.gotgo
+	./tests/test.gotgo int > "$@"
+tests/demo/list(int).go: tests/demo/list.gotgo
+	./tests/demo/list.gotgo int > "$@"
+tests/demo/slice(int).go: tests/demo/slice.gotgo
+	./tests/demo/slice.gotgo int > "$@"
+tests/demo/slice(list.List).go: tests/demo/slice.gotgo tests/demo/list(int).$(O)
+	./tests/demo/slice.gotgo --import 'import list "./list(int)"' list.List > "$@"

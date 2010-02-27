@@ -159,7 +159,7 @@ func append(xs *[]string, x string) {
 
 func GetGofile(fname, got string, types []string, names map[string]string) os.Error {
 	args := make([]string, 0, 4*len(types)+400)
-	append(&args, got+"it")
+	append(&args, got+"go")
 	for _,t := range types {
 		if strings.Index(t, ".") != -1 {
 			append(&args, "--import")

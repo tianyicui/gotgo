@@ -17,7 +17,7 @@ import (
 	"strconv"
 	"path"
 	"./got/buildit"
-	"./got/gotit"
+	"./got/gotgo"
 )
 
 var (
@@ -65,13 +65,13 @@ func createGofile(sourcePath string, importMap map[string]string) (error os.Erro
 		basename := sourcePath[0:n]
 		typesname := sourcePath[n+1:]
 		gotname := basename + ".got"
-		gotitname := gotname + "it"
-		if needit,_ := shouldUpdate(gotname, gotitname); needit {
-			error = gotit.Gotit(gotname)
-			if error != nil { return explain("gotit.Gotit", error) }
+		gotgoname := gotname + "go"
+		if needit,_ := shouldUpdate(gotname, gotgoname); needit {
+			error = gotgo.Gotgo(gotname)
+			if error != nil { return explain("gotgo.Gotgo", error) }
 		}
 		goname := sourcePath + ".go"
-		if needit,_ := shouldUpdate(gotitname, goname); needit {
+		if needit,_ := shouldUpdate(gotgoname, goname); needit {
 			// first scan the type parameters
 			var scan scanner.Scanner
 			scan.Init(sourcePath, strings.Bytes(typesname), nil, 0)

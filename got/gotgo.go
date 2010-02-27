@@ -1,4 +1,4 @@
-package gotit
+package gotgo
 
 import (
 	"os"
@@ -10,7 +10,7 @@ import (
 	"./buildit"
 )
 
-func writeGotGotit(filename string) (e os.Error) {
+func writeGotGotgo(filename string) (e os.Error) {
 	x, e := ioutil.ReadFile(filename)
 	if e != nil { return }
 	var scan scanner.Scanner
@@ -41,8 +41,8 @@ func writeGotGotit(filename string) (e os.Error) {
 		strings.Bytes("package "+string(pname)+"\n"+
 		string(x[lastpos:])+"\n"+typedecs), 0666)
 	if e != nil { return }
-	// Now let's write the cool gotit.go file...
-	out, e := os.Open(filename+"it.go", os.O_WRONLY+os.O_CREAT+os.O_TRUNC,0666)
+	// Now let's write the cool gotgo.go file...
+	out, e := os.Open(filename+"go.go", os.O_WRONLY+os.O_CREAT+os.O_TRUNC,0666)
 	if e != nil { return }
 	fmt.Fprintf(out, `package main
 
@@ -150,20 +150,20 @@ func dieOn(e os.Error) {
 	}
 }
 
-func Gotit(gotname string) (error os.Error) {
+func Gotgo(gotname string) (error os.Error) {
 	if gotname[len(gotname)-4:] != ".got" {
 		return os.NewError("the argument should end with .got")
 	}
-	error = writeGotGotit(gotname)
+	error = writeGotGotgo(gotname)
 	if error != nil { return }
 	error = buildit.Compile(gotname + ".go")
 	if error != nil { return }
 	//buildit.CleanCompile(gotname + ".go")
 	//os.Remove(gotname+".go")
-	error = buildit.Compile(gotname + "it.go")
+	error = buildit.Compile(gotname + "go.go")
 	if error != nil { return }
-	error = buildit.Link(gotname + "it.go")
-	//buildit.CleanCompile(gotname + "it.go")
-	//os.Remove(gotname+"it.go")
+	error = buildit.Link(gotname + "go.go")
+	//buildit.CleanCompile(gotname + "go.go")
+	//os.Remove(gotname+"go.go")
 	return
 }

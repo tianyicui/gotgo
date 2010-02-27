@@ -6,8 +6,11 @@ gotimports
 *.got.go
 *.gotit.go
 *.gotit
+*.gotgo.go
+*.gotgo
 *ø*.go
 example
 gotit
+gotgo
 got2gotit
 *(*).go
