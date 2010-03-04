@@ -38,7 +38,7 @@ func writeGotGotgo(filename string) (e os.Error) {
 	}
 	lastpos := restpos.Offset+1
 	e = ioutil.WriteFile(filename+".go",
-		strings.Bytes("package "+string(pname)+"\n"+
+		[]byte("package "+string(pname)+"\n"+
 		string(x[lastpos:])+"\n"+typedecs), 0666)
 	if e != nil { return }
 	// Now let's write the cool gotgo.go file...

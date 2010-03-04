@@ -74,7 +74,7 @@ func createGofile(sourcePath string, importMap map[string]string) (error os.Erro
 		if needit,_ := shouldUpdate(gotgoname, goname); needit {
 			// first scan the type parameters
 			var scan scanner.Scanner
-			scan.Init(sourcePath, strings.Bytes(typesname), nil, 0)
+			scan.Init(sourcePath, []byte(typesname), nil, 0)
 			types, error := buildit.TypeList(&scan)
 			if error != nil { return }
 			error = buildit.GetGofile(sourcePath+".go", basename+".got", types,
