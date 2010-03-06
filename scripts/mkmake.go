@@ -203,7 +203,11 @@ include $(GOROOT)/src/Make.$(GOARCH)
 `, mybinfiles)
 	fmt.Print("Makefile: scripts/mkmake\n\t./scripts/mkmake > $@\n")
 	fmt.Print(".go.$(O):\n\tcd `dirname \"$<\"`; $(GC) `basename \"$<\"`\n")
-	fmt.Print(".got.gotgo:\n\tgotgo \"$<\"\n\n")
+	if fileexists("gotgo.go") {
+		fmt.Print(".got.gotgo:\n\t./gotgo \"$<\"\n\n")
+	} else {
+		fmt.Print(".got.gotgo:\n\tgotgo \"$<\"\n\n")
+	}
 	path.Walk(".", maker{}, nil)
 }
 
