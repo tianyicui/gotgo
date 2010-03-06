@@ -1,5 +1,10 @@
 set -ev
 
+make scripts/mkmake
+
+# Let's make sure the generated makefile will actually work...
+./scripts/mkmake > Makefile
+
 make
 
 ./gotimports tests/example.go

@@ -4,7 +4,7 @@
 # Use of this source code is governed by a BSD-style
 # license that can be found in the LICENSE file.
 
-MYBINFILES=gotgo gotimports
+MYBINFILES=gotgo gotimports scripts/mkmake
 
 all: $(MYBINFILES)
 
@@ -54,3 +54,7 @@ tests/demo/slice(int).go: tests/demo/slice.gotgo
 	./tests/demo/slice.gotgo int > "$@"
 tests/demo/slice(list.List).go: tests/demo/slice.gotgo tests/demo/list(int).$(O)
 	./tests/demo/slice.gotgo --import 'import list "./list(int)"' list.List > "$@"
+
+scripts/mkmake.$(O): scripts/mkmake.go got/buildit.$(O)
+scripts/mkmake: scripts/mkmake.$(O)
+	$(LD) -o $@ $<

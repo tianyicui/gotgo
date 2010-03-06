@@ -157,17 +157,36 @@ func append(xs *[]string, x string) {
 	(*xs)[len(*xs)-1] = x
 }
 
-func GetGofile(fname, got string, types []string, names map[string]string) os.Error {
-	args := make([]string, 0, 4*len(types)+400)
-	append(&args, got+"go")
+func GetGotgoArguments(types []string, names map[string]string) (args []string) {
+	args = make([]string, 0, 4*len(types)+400)
 	for _,t := range types {
 		if strings.Index(t, ".") != -1 {
-			append(&args, "--import")
 			im := t[0:strings.Index(t,".")]
-			append(&args, "import "+im+" "+strconv.Quote(names[im]))
+			n, ok := names[im]
+			if !ok {
+				fmt.Println("# Unrecognized import: "+im+" from ", names)
+				continue
+			}
+			args = args[0:len(args)+2]
+			args[len(args)-2] = "--import"
+			args[len(args)-1] = "import "+im+" "+strconv.Quote(n)
 		}
 	}
-	for _,t := range types { append(&args, t) }
+	len0 := len(args)
+	args = args[0:len0 + len(types)]
+	for i,t := range types {
+		args[len0+i] = t
+	}
+	return
+}
+
+func GetGofile(fname, got string, types []string, names map[string]string) os.Error {
+	args0 := GetGotgoArguments(types, names)
+	args := make([]string, len(args0)+1)
+	args[0] = got+"go"
+	for i,a := range args0 {
+		args[i+1] = a
+	}
 	error := execpout(fname, ".", args)
 	if error != nil {
 		return Explain("execpout "+args[0]+": ", error)
