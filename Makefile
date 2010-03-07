@@ -2,43 +2,43 @@
 # All rights reserved.
 
 
-all: Makefile  gotgo gotimports scripts/mkmake tests/demo/list.gotgo tests/demo/slice.gotgo tests/example
+all: Makefile  bin/gotgo bin/gotimports bin/mkmake tests/demo/list.gotgo tests/demo/slice.gotgo tests/example tests/test.gotgo
 
 include $(GOROOT)/src/Make.$(GOARCH)
 
 .PHONY: test
 .SUFFIXES: .$(O) .go .got .gotgo
 
-Makefile: scripts/mkmake
-	./scripts/mkmake > $@
+Makefile: bin/mkmake
+	./bin/mkmake > $@
 .go.$(O):
 	cd `dirname "$<"`; $(GC) `basename "$<"`
 .got.gotgo:
-	./gotgo "$<"
+	gotgo "$<"
 
-got/buildit.$(O): got/buildit.go
+src/got/buildit.$(O): src/got/buildit.go
 
-# got/gotgo.go imports got/buildit
-got/gotgo.$(O): got/gotgo.go got/buildit.$(O)
+# src/got/gotgo.go imports src/got/buildit
+src/got/gotgo.$(O): src/got/gotgo.go src/got/buildit.$(O)
 
-# gotgo.go imports got/gotgo
-gotgo: gotgo.$(O)
+# src/gotgo.go imports src/got/gotgo
+bin/gotgo: src/gotgo.$(O)
 	@mkdir -p bin
 	$(LD) -o $@ $<
-gotgo.$(O): gotgo.go got/gotgo.$(O)
+src/gotgo.$(O): src/gotgo.go src/got/gotgo.$(O)
 
-# gotimports.go imports got/gotgo
-# gotimports.go imports got/buildit
-gotimports: gotimports.$(O)
+# src/gotimports.go imports src/got/gotgo
+# src/gotimports.go imports src/got/buildit
+bin/gotimports: src/gotimports.$(O)
 	@mkdir -p bin
 	$(LD) -o $@ $<
-gotimports.$(O): gotimports.go got/buildit.$(O) got/gotgo.$(O)
+src/gotimports.$(O): src/gotimports.go src/got/buildit.$(O) src/got/gotgo.$(O)
 
-# scripts/mkmake.go imports got/buildit
-scripts/mkmake: scripts/mkmake.$(O)
+# src/mkmake.go imports src/got/buildit
+bin/mkmake: src/mkmake.$(O)
 	@mkdir -p bin
 	$(LD) -o $@ $<
-scripts/mkmake.$(O): scripts/mkmake.go got/buildit.$(O)
+src/mkmake.$(O): src/mkmake.go src/got/buildit.$(O)
 
 # found file tests/demo/finalizer.got to build...
 # error:  tests/demo/finalizer.got:6:18: expected ';', found '('
@@ -58,6 +58,11 @@ tests/demo/list.gotgo: tests/demo/list.gotgo.$(O)
 tests/demo/list.gotgo.$(O): tests/demo/list.gotgo.go
 
 tests/demo/slice(int).$(O): tests/demo/slice(int).go
+
+# tests/demo/slice(list.List).go imports tests/demo/list(int)
+tests/demo/list(int).go: tests/demo/list.gotgo
+	$< 'int' > "$@"
+tests/demo/slice(list.List).$(O): tests/demo/slice(list.List).go tests/demo/list(int).$(O)
 
 # found file tests/demo/slice.got to build...
 # error:  tests/demo/slice.got:1:14: expected ';', found '('
@@ -99,4 +104,9 @@ tests/test(string).$(O): tests/test(string).go
 tests/test.gotgo: tests/test.got 
 
 tests/test.got.$(O): tests/test.got.go
+
+tests/test.gotgo: tests/test.gotgo.$(O)
+	@mkdir -p bin
+	$(LD) -o $@ $<
+tests/test.gotgo.$(O): tests/test.gotgo.go
 

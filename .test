@@ -1,13 +1,13 @@
 set -ev
 
-make scripts/mkmake
+make bin/mkmake
 
 # Let's make sure the generated makefile will actually work...
-./scripts/mkmake > Makefile
+./bin/mkmake > Makefile
 
 make
 
-./gotimports tests/example.go
+./bin/gotimports tests/example.go
 
 test -f 'tests/demo/slice.gotgo'
 test -f 'tests/demo/slice(list.List).go'

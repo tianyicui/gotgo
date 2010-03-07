@@ -17,7 +17,7 @@ import (
 	"strconv"
 	"path"
   "sort"
-	"../got/buildit"
+	"./got/buildit"
 )
 
 var (
@@ -201,7 +201,7 @@ include $(GOROOT)/src/Make.$(GOARCH)
 .SUFFIXES: .$(O) .go .got .gotgo
 
 `, mybinfiles)
-	fmt.Print("Makefile: scripts/mkmake\n\t./scripts/mkmake > $@\n")
+	fmt.Print("Makefile: bin/mkmake\n\t./bin/mkmake > $@\n")
 	fmt.Print(".go.$(O):\n\tcd `dirname \"$<\"`; $(GC) `basename \"$<\"`\n")
 	if fileexists("gotgo.go") {
 		fmt.Print(".got.gotgo:\n\t./gotgo \"$<\"\n\n")
