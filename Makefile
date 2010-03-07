@@ -3,14 +3,14 @@
 
 all: Makefile binaries
 
-Makefile: bin/mkmake scripts/Make.header
+Makefile: bin/gotmake scripts/Make.header
 	cp -f scripts/Make.header $@
-	./bin/mkmake >> $@
+	./bin/gotmake >> $@
 
 test: tests/example
 
 
-binaries:  bin/gotgo bin/gotimports bin/mkmake
+binaries:  bin/gotgo bin/gotimports bin/gotmake
 
 include $(GOROOT)/src/Make.$(GOARCH)
 
@@ -40,11 +40,11 @@ bin/gotimports: src/gotimports.$(O)
 	$(LD) -o $@ $<
 src/gotimports.$(O): src/gotimports.go src/got/buildit.$(O) src/got/gotgo.$(O)
 
-# src/mkmake.go imports src/got/buildit
-bin/mkmake: src/mkmake.$(O)
+# src/gotmake.go imports src/got/buildit
+bin/gotmake: src/gotmake.$(O)
 	@mkdir -p bin
 	$(LD) -o $@ $<
-src/mkmake.$(O): src/mkmake.go src/got/buildit.$(O)
+src/gotmake.$(O): src/gotmake.go src/got/buildit.$(O)
 
 # found file tests/demo/finalizer.got to build...
 # error:  tests/demo/finalizer.got:6:18: expected ';', found '('

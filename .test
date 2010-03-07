@@ -1,9 +1,8 @@
 set -ev
 
-make bin/mkmake
-
 # Let's make sure the generated makefile will actually work...
-./bin/mkmake > Makefile
+touch src/*.go
+make Makefile
 
 make
 
