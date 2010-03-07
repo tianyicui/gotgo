@@ -155,34 +155,41 @@ func createGofile(sourcePath string, names map[string]string) {
 		gotname := basename + ".got"
 		gotgoname := gotname + "go"
 		goname := sourcePath + ".go"
+		pkggotname := path.Join(pkgdir,gotname)
 
 		if fileexists(gotname) {
-			// first scan the type parameters in the import
-			var scan scanner.Scanner
-			scan.Init(sourcePath, []byte(typesname), nil, 0)
-			types, error := buildit.TypeList(&scan)
-			if error != nil { return }
-
 			fmt.Printf("%s: %s\n\t$<", goname, gotgoname)
-			cuttable := ""
-			for i,v := range path.Clean(goname) {
-				if v == '/' { cuttable = path.Clean(goname)[0:i+1] }
-			}
-			relnames := make(map[string]string)
-			for k,v := range names {
-				if v[0:len(cuttable)] == cuttable {
-					relnames[k] = "./" + v[len(cuttable):]
-				} else {
-					relnames[k] = v
-				}
-			}
-			for _, a := range buildit.GetGotgoArguments(types, relnames) {
-				fmt.Printf(" '%s'", a)
-			}
-			fmt.Printf(" > \"$@\"\n")
+		} else if fileexists(pkggotname) {
+			fmt.Printf("# looks like we require %s as installed package...", gotname)
+			fmt.Printf("%s: $(pkgdir)/%s\n\t$<", goname, gotgoname)
 		} else {
 			fmt.Printf("# I don't know how to make %s from %s\n", goname, gotname)
+			return
 		}
+		// We've figured out what gotgo binary to use to create our go
+		// file, and now just need the arguments.
+		// Begin by scanning the type parameters in the import
+		var scan scanner.Scanner
+		scan.Init(sourcePath, []byte(typesname), nil, 0)
+		types, error := buildit.TypeList(&scan)
+		if error != nil { return }
+		// Now we want to figure out how to modify the import path
+		cuttable := ""
+		for i,v := range path.Clean(goname) {
+			if v == '/' { cuttable = path.Clean(goname)[0:i+1] }
+		}
+		relnames := make(map[string]string)
+		for k,v := range names {
+			if v[0:len(cuttable)] == cuttable {
+				relnames[k] = "./" + v[len(cuttable):]
+			} else {
+				relnames[k] = v
+			}
+		}
+		for _, a := range buildit.GetGotgoArguments(types, relnames) {
+			fmt.Printf(" '%s'", a)
+		}
+		fmt.Printf(" > \"$@\"\n")
 	}
 	return
 }
@@ -211,6 +218,8 @@ var mybinfiles = ""
 var mypackages = ""
 var installbins = ""
 var installpkgs = ""
+var pkgdir = path.Join(os.Getenv("GOROOT"),"pkg",
+	os.Getenv("GOOS")+"_"+os.Getenv("GOARCH"))
 
 func main() {
 	path.Walk(".", seeker{}, nil)
