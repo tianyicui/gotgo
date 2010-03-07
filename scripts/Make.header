@@ -3,6 +3,8 @@
 
 all: Makefile binaries
 
-Makefile: bin/mkmake
+Makefile: bin/mkmake scripts/Make.header
 	cp -f scripts/Make.header $@
 	./bin/mkmake >> $@
+
+test: tests/example

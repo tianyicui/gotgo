@@ -178,7 +178,7 @@ func (seeker) VisitFile(f string, _ *os.Dir) {
 	if path.Ext(f) == ".go" {
 		pname, _, _, _ := getImports(f)
 		basename := f[0:len(f)-3]
-		if pname == "main" {
+		if pname == "main" && len(f) > 4 && f[0:4] != "test" {
 			mybinfiles += " " + cleanbinname(basename)
 		}
 	}

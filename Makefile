@@ -3,12 +3,14 @@
 
 all: Makefile binaries
 
-Makefile: bin/mkmake
+Makefile: bin/mkmake scripts/Make.header
 	cp -f scripts/Make.header $@
 	./bin/mkmake >> $@
 
+test: tests/example
 
-binaries:  bin/gotgo bin/gotimports bin/mkmake tests/demo/list.gotgo tests/demo/slice.gotgo tests/example tests/test.gotgo
+
+binaries:  bin/gotgo bin/gotimports bin/mkmake
 
 include $(GOROOT)/src/Make.$(GOARCH)
 
