@@ -20,10 +20,6 @@ import (
 	"./got/buildit"
 )
 
-var (
-	curdir, _ = os.Getwd()
-)
-
 func getImports(filename string) (pkgname string,
 	imports map[string]bool, names map[string]string, error os.Error) {
 	source, error := ioutil.ReadFile(filename)
@@ -65,18 +61,6 @@ func getImports(filename string) (pkgname string,
 func cleanbinname(f string) string {
 	if f[0:4] == "src/" { return "bin/"+f[4:] }
 	return f
-}
-
-func shouldUpdate(sourceFile, targetFile string) (doUpdate bool, error os.Error) {
-	sourceStat, error := os.Lstat(sourceFile)
-	if error != nil {
-		return false, error
-	}
-	targetStat, error := os.Lstat(targetFile)
-	if error != nil {
-		return true, error
-	}
-	return targetStat.Mtime_ns < sourceStat.Mtime_ns, error
 }
 
 type maker struct {
