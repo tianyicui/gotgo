@@ -152,13 +152,17 @@ func createGofile(sourcePath string, names map[string]string) {
 			if error != nil { return }
 
 			fmt.Printf("%s: %s\n\t$<", goname, gotgoname)
-			dotdots := ""
-			for _,v := range path.Clean(goname) {
-				if v == '/' { dotdots += "../" }
+			cuttable := ""
+			for i,v := range path.Clean(goname) {
+				if v == '/' { cuttable = path.Clean(goname)[0:i+1] }
 			}
 			relnames := make(map[string]string)
 			for k,v := range names {
-				relnames[k] = path.Join(dotdots,v)
+				if v[0:len(cuttable)] == cuttable {
+					relnames[k] = "./" + v[len(cuttable):]
+				} else {
+					relnames[k] = v
+				}
 			}
 			for _, a := range buildit.GetGotgoArguments(types, relnames) {
 				fmt.Printf(" '%s'", a)
