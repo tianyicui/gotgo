@@ -63,11 +63,16 @@ func cleanbinname(f string) string {
 	return f
 }
 
+func cleanpkgname(f string) string {
+	if f[0:4] == "pkg/" { return f[4:] }
+	return f
+}
+
 type maker struct {
 }
 func (maker) VisitDir(string, *os.Dir) bool { return true }
 func (maker) VisitFile(f string, _ *os.Dir) {
-	if len(f) > 12 && f[len(f)-10:] == ".gotgo.go" {
+	if endswith(f, ".gotgo.go") {
 		fmt.Printf("# ignoring %s, since it's a generated file\n", f)
 	} else if path.Ext(f) == ".go" {
 		deps := make([]string, 1, 1000) // FIXME stupid hardcoded limit...x
@@ -87,12 +92,27 @@ func (maker) VisitFile(f string, _ *os.Dir) {
 		objname := basename+".$(O)"
 		if pname == "main" {
 			fmt.Printf("%s: %s\n\t@mkdir -p bin\n\t$(LD) -o $@ $<\n", cleanbinname(basename), objname)
+			if cleanbinname(basename)[0:4] == "bin/" {
+				installname := fmt.Sprintf("$(bindir)/%s",
+					cleanbinname(basename)[4:])
+				fmt.Printf("%s: %s\n\tcp $< $@\n", installname, cleanbinname(basename))
+				installbins += " " + installname
+			}
 		}
 		fmt.Print(objname+":")
 		for _,d := range deps {
 			fmt.Print(" "+d)
 		}
-		fmt.Print("\n\n")
+		fmt.Print("\n")
+		if basename[0:4] == "pkg/" && !endswith(basename,"gotgo.go") {
+			// we want to install this as a package
+			installname := fmt.Sprintf("$(pkgdir)/%s", objname)
+			dir,_ := path.Split(installname)
+			fmt.Printf("%s: %s\n\tmkdir -p %s\n\tcp $< $@\n\n",
+				installname, objname, dir)
+			installpkgs += " " + installname
+		}
+		fmt.Print("\n")
 	} else if path.Ext(f) == ".got" {
 		fmt.Printf("# found file %s to build...\n", f)
 		// YUCK: the following code essentially duplicates the code in the
@@ -113,7 +133,15 @@ func (maker) VisitFile(f string, _ *os.Dir) {
 		for _,d := range deps {
 			fmt.Print(" "+d)
 		}
-		fmt.Print("\n\n")
+		fmt.Print("\n")
+		if f[0:4] == "pkg/" {
+			// we want to install this as a got package!
+			installname := fmt.Sprintf("$(pkgdir)/%s", f[4:]+"go")
+			dir,_ := path.Split(installname)
+			fmt.Printf("%s: %s\n\tmkdir -p %s\n\tcp $< $@\n\n",installname,f+"go",dir)
+			installpkgs += " " + installname
+		}
+		fmt.Print("\n")
 	}
 }
 
@@ -163,29 +191,49 @@ type seeker struct {
 }
 func (seeker) VisitDir(string, *os.Dir) bool { return true }
 func (seeker) VisitFile(f string, _ *os.Dir) {
-	if path.Ext(f) == ".go" {
+	switch path.Ext(f) {
+	case ".go":
 		pname, _, _, _ := getImports(f)
 		basename := f[0:len(f)-3]
 		if pname == "main" && len(f) > 4 && f[0:4] != "test" {
 			mybinfiles += " " + cleanbinname(basename)
+		} else if len(f) > 4 && f[0:4] == "pkg/" {
+			mypackages += " " + basename + ".a"
+		}
+	case ".got":
+		if len(f) > 4 && f[0:4] == "pkg/" {
+			mypackages += " " + f + "go"
 		}
 	}
 }
 
 var mybinfiles = ""
+var mypackages = ""
+var installbins = ""
+var installpkgs = ""
 
 func main() {
 	path.Walk(".", seeker{}, nil)
 	fmt.Printf(`
 
 binaries: %s
+packages: %s
 
 include $(GOROOT)/src/Make.$(GOARCH)
+ifndef GOBIN
+GOBIN=$(HOME)/bin
+endif
 
-.PHONY: test binaries
+# ugly hack to deal with whitespaces in $GOBIN
+nullstring :=
+space := $(nullstring) # a space at the end
+bindir=$(subst $(space),\ ,$(GOBIN))
+pkgdir=$(subst $(space),\ ,$(GOROOT)/pkg/$(GOOS)_$(GOARCH))
+
+.PHONY: test binaries install installbins installpkgs
 .SUFFIXES: .$(O) .go .got .gotgo
 
-`, mybinfiles)
+`, mybinfiles, mypackages)
 	fmt.Print(".go.$(O):\n\tcd `dirname \"$<\"`; $(GC) `basename \"$<\"`\n")
 	if fileexists("gotgo.go") {
 		fmt.Print(".got.gotgo:\n\t./gotgo \"$<\"\n\n")
@@ -193,9 +241,15 @@ include $(GOROOT)/src/Make.$(GOARCH)
 		fmt.Print(".got.gotgo:\n\tgotgo \"$<\"\n\n")
 	}
 	path.Walk(".", maker{}, nil)
+	fmt.Printf("installbins: %s\n", installbins)
+	fmt.Printf("installpkgs: %s\n", installpkgs)
 }
 
 func fileexists(f string) bool {
 	x, err := os.Stat(f)
 	return err == nil && x.IsRegular()
+}
+
+func endswith(s, end string) bool {
+	return len(s) >= len(end) && s[len(s) - len(end):] == end
 }

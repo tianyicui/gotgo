@@ -8,3 +8,5 @@ Makefile: bin/gotmake scripts/Make.header
 	./bin/gotmake >> $@
 
 test: tests/example
+
+install: installbins installpkgs

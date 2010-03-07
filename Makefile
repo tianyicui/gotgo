@@ -9,12 +9,24 @@ Makefile: bin/gotmake scripts/Make.header
 
 test: tests/example
 
+install: installbins installpkgs
 
-binaries:  bin/gotgo bin/gotimports bin/gotmake
+
+binaries:  pkg/gotgo/slice.gotgo bin/gotgo bin/gotimports bin/gotmake
+packages:  pkg/gotgo/slice.gotgo pkg/gotgo/slice.got.a
 
 include $(GOROOT)/src/Make.$(GOARCH)
+ifndef GOBIN
+GOBIN=$(HOME)/bin
+endif
 
-.PHONY: test binaries
+# ugly hack to deal with whitespaces in $GOBIN
+nullstring :=
+space := $(nullstring) # a space at the end
+bindir=$(subst $(space),\ ,$(GOBIN))
+pkgdir=$(subst $(space),\ ,$(GOROOT)/pkg/$(GOOS)_$(GOARCH))
+
+.PHONY: test binaries install installbins installpkgs
 .SUFFIXES: .$(O) .go .got .gotgo
 
 .go.$(O):
@@ -22,6 +34,21 @@ include $(GOROOT)/src/Make.$(GOARCH)
 .got.gotgo:
 	gotgo "$<"
 
+# found file pkg/gotgo/slice.got to build...
+# error:  pkg/gotgo/slice.got:1:14: expected ';', found '('
+pkg/gotgo/slice.gotgo: pkg/gotgo/slice.got 
+$(pkgdir)/gotgo/slice.gotgo: pkg/gotgo/slice.gotgo
+	mkdir -p $(pkgdir)/gotgo/
+	cp $< $@
+
+
+pkg/gotgo/slice.got.$(O): pkg/gotgo/slice.got.go
+$(pkgdir)/pkg/gotgo/slice.got.$(O): pkg/gotgo/slice.got.$(O)
+	mkdir -p $(pkgdir)/pkg/gotgo/
+	cp $< $@
+
+
+# ignoring pkg/gotgo/slice.gotgo.go, since it's a generated file
 src/got/buildit.$(O): src/got/buildit.go
 
 # src/got/gotgo.go imports src/got/buildit
@@ -31,6 +58,8 @@ src/got/gotgo.$(O): src/got/gotgo.go src/got/buildit.$(O)
 bin/gotgo: src/gotgo.$(O)
 	@mkdir -p bin
 	$(LD) -o $@ $<
+$(bindir)/gotgo: bin/gotgo
+	cp $< $@
 src/gotgo.$(O): src/gotgo.go src/got/gotgo.$(O)
 
 # src/gotimports.go imports src/got/gotgo
@@ -38,12 +67,16 @@ src/gotgo.$(O): src/gotgo.go src/got/gotgo.$(O)
 bin/gotimports: src/gotimports.$(O)
 	@mkdir -p bin
 	$(LD) -o $@ $<
+$(bindir)/gotimports: bin/gotimports
+	cp $< $@
 src/gotimports.$(O): src/gotimports.go src/got/buildit.$(O) src/got/gotgo.$(O)
 
 # src/gotmake.go imports src/got/buildit
 bin/gotmake: src/gotmake.$(O)
 	@mkdir -p bin
 	$(LD) -o $@ $<
+$(bindir)/gotmake: bin/gotmake
+	cp $< $@
 src/gotmake.$(O): src/gotmake.go src/got/buildit.$(O)
 
 # found file tests/demo/finalizer.got to build...
@@ -58,11 +91,7 @@ tests/demo/list.gotgo: tests/demo/list.got
 
 tests/demo/list.got.$(O): tests/demo/list.got.go
 
-tests/demo/list.gotgo: tests/demo/list.gotgo.$(O)
-	@mkdir -p bin
-	$(LD) -o $@ $<
-tests/demo/list.gotgo.$(O): tests/demo/list.gotgo.go
-
+# ignoring tests/demo/list.gotgo.go, since it's a generated file
 tests/demo/slice(int).$(O): tests/demo/slice(int).go
 
 # tests/demo/slice(list.List).go imports tests/demo/list(int)
@@ -76,11 +105,7 @@ tests/demo/slice.gotgo: tests/demo/slice.got
 
 tests/demo/slice.got.$(O): tests/demo/slice.got.go
 
-tests/demo/slice.gotgo: tests/demo/slice.gotgo.$(O)
-	@mkdir -p bin
-	$(LD) -o $@ $<
-tests/demo/slice.gotgo.$(O): tests/demo/slice.gotgo.go
-
+# ignoring tests/demo/slice.gotgo.go, since it's a generated file
 # tests/example.go imports tests/demo/slice(list.List)
 tests/demo/slice(list.List).go: tests/demo/slice.gotgo
 	$< '--import' 'import list "./list(int)"' 'list.List' > "$@"
@@ -111,8 +136,6 @@ tests/test.gotgo: tests/test.got
 
 tests/test.got.$(O): tests/test.got.go
 
-tests/test.gotgo: tests/test.gotgo.$(O)
-	@mkdir -p bin
-	$(LD) -o $@ $<
-tests/test.gotgo.$(O): tests/test.gotgo.go
-
+# ignoring tests/test.gotgo.go, since it's a generated file
+installbins:  $(bindir)/gotgo $(bindir)/gotimports $(bindir)/gotmake
+installpkgs:  $(pkgdir)/gotgo/slice.gotgo $(pkgdir)/pkg/gotgo/slice.got.$(O)
