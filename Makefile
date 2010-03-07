@@ -1,16 +1,20 @@
 # Copyright 2010 David Roundy, roundyd@physics.oregonstate.edu.
 # All rights reserved.
 
+all: Makefile binaries
 
-all: Makefile  bin/gotgo bin/gotimports bin/mkmake tests/demo/list.gotgo tests/demo/slice.gotgo tests/example tests/test.gotgo
+Makefile: bin/mkmake
+	cp -f scripts/Make.header $@
+	./bin/mkmake >> $@
+
+
+binaries:  bin/gotgo bin/gotimports bin/mkmake tests/demo/list.gotgo tests/demo/slice.gotgo tests/example tests/test.gotgo
 
 include $(GOROOT)/src/Make.$(GOARCH)
 
-.PHONY: test
+.PHONY: test binaries
 .SUFFIXES: .$(O) .go .got .gotgo
 
-Makefile: bin/mkmake
-	./bin/mkmake > $@
 .go.$(O):
 	cd `dirname "$<"`; $(GC) `basename "$<"`
 .got.gotgo:

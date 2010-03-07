@@ -187,21 +187,17 @@ func (seeker) VisitFile(f string, _ *os.Dir) {
 var mybinfiles = ""
 
 func main() {
-	fmt.Print(`# Copyright 2010 David Roundy, roundyd@physics.oregonstate.edu.
-# All rights reserved.
-
-`)
 	path.Walk(".", seeker{}, nil)
 	fmt.Printf(`
-all: Makefile %s
+
+binaries: %s
 
 include $(GOROOT)/src/Make.$(GOARCH)
 
-.PHONY: test
+.PHONY: test binaries
 .SUFFIXES: .$(O) .go .got .gotgo
 
 `, mybinfiles)
-	fmt.Print("Makefile: bin/mkmake\n\t./bin/mkmake > $@\n")
 	fmt.Print(".go.$(O):\n\tcd `dirname \"$<\"`; $(GC) `basename \"$<\"`\n")
 	if fileexists("gotgo.go") {
 		fmt.Print(".got.gotgo:\n\t./gotgo \"$<\"\n\n")
