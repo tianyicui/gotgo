@@ -83,7 +83,7 @@ tests/demo/slice.gotgo.$(O): tests/demo/slice.gotgo.go
 
 # tests/example.go imports tests/demo/slice(list.List)
 tests/demo/slice(list.List).go: tests/demo/slice.gotgo
-	$< '--import' 'import list "../../tests/demo/list(int)"' 'list.List' > "$@"
+	$< '--import' 'import list "./list(int)"' 'list.List' > "$@"
 # tests/example.go imports tests/demo/list(int)
 tests/demo/list(int).go: tests/demo/list.gotgo
 	$< 'int' > "$@"
