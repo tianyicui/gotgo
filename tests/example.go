@@ -4,11 +4,11 @@ package main
 
 import (
 	"fmt"
-	ints "./demo/slice(int)"
+	ints "./gotgo/slice(int)"
 	stringtest "./test(string)"
 	inttest "./test(int)"
 	list "./demo/list(int)"
-	lists "./demo/slice(list.List)"
+	lists "./gotgo/slice(list.List)"
 )
 
 func main() {

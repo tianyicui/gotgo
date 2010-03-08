@@ -106,25 +106,36 @@ tests/demo/slice.gotgo: tests/demo/slice.got
 tests/demo/slice.got.$(O): tests/demo/slice.got.go
 
 # ignoring tests/demo/slice.gotgo.go, since it's a generated file
-# tests/example.go imports tests/demo/slice(list.List)
-tests/demo/slice(list.List).go: tests/demo/slice.gotgo
-	$< '--import' 'import list "./list(int)"' 'list.List' > "$@"
 # tests/example.go imports tests/demo/list(int)
 tests/demo/list(int).go: tests/demo/list.gotgo
 	$< 'int' > "$@"
 # tests/example.go imports tests/test(string)
 tests/test(string).go: tests/test.gotgo
 	$< 'string' > "$@"
-# tests/example.go imports tests/demo/slice(int)
-tests/demo/slice(int).go: tests/demo/slice.gotgo
+# tests/example.go imports tests/gotgo/slice(int)
+# looks like we require tests/gotgo/slice.got as installed package...
+tests/gotgo/slice(int).go: $(pkgdir)/./gotgo/slice.gotgo
+	mkdir -p tests/gotgo/
 	$< 'int' > "$@"
 # tests/example.go imports tests/test(int)
 tests/test(int).go: tests/test.gotgo
 	$< 'int' > "$@"
+# tests/example.go imports tests/gotgo/slice(list.List)
+# looks like we require tests/gotgo/slice.got as installed package...
+tests/gotgo/slice(list.List).go: $(pkgdir)/./gotgo/slice.gotgo
+	mkdir -p tests/gotgo/
+	$< '--import' 'import list "../demo/list(int)"' 'list.List' > "$@"
 tests/example: tests/example.$(O)
 	@mkdir -p bin
 	$(LD) -o $@ $<
-tests/example.$(O): tests/example.go tests/demo/list(int).$(O) tests/demo/slice(int).$(O) tests/demo/slice(list.List).$(O) tests/test(int).$(O) tests/test(string).$(O)
+tests/example.$(O): tests/example.go tests/demo/list(int).$(O) tests/gotgo/slice(int).$(O) tests/gotgo/slice(list.List).$(O) tests/test(int).$(O) tests/test(string).$(O)
+
+tests/gotgo/slice(int).$(O): tests/gotgo/slice(int).go
+
+# tests/gotgo/slice(list.List).go imports tests/demo/list(int)
+tests/demo/list(int).go: tests/demo/list.gotgo
+	$< 'int' > "$@"
+tests/gotgo/slice(list.List).$(O): tests/gotgo/slice(list.List).go tests/demo/list(int).$(O)
 
 tests/test(int).$(O): tests/test(int).go
 

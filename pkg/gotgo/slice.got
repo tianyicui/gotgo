@@ -83,3 +83,12 @@ func Cat(slice []a, more []a) []a {
 	}
 	return slice
 }
+
+func Reverse(slice []a) []a {
+	ln := len(slice)
+	out := make([]a, ln)
+	for i,v:= range out {
+		out[ln-1-i] = v
+	}
+	return out
+}

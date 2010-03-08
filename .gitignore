@@ -1,6 +1,7 @@
 *.8
 *~
 gotmake
+bin
 gotimports
 *.got.go
 *.gotit.go
@@ -9,7 +10,4 @@ gotimports
 *.gotgo
 *ø*.go
 example
-gotit
-gotgo
-got2gotit
 *(*).go

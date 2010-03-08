@@ -21,7 +21,7 @@ import (
 )
 
 func getImports(filename string) (pkgname string,
-	imports map[string]bool, names map[string]string, error os.Error) {
+	imports map[string]string, names map[string]string, error os.Error) {
 	source, error := ioutil.ReadFile(filename)
 	if error != nil {
 		return
@@ -41,12 +41,12 @@ func getImports(filename string) (pkgname string,
 					importPath, _ := strconv.Unquote(string(importSpec.Path.Value))
 					if len(importPath) > 0 {
 						if imports == nil {
-							imports = make(map[string]bool)
+							imports = make(map[string]string)
 							names = make(map[string]string)
 						}
 						if importPath[0] == '.' || strings.Index(importPath, "(") != -1 {
 							nicepath := path.Join(dir, path.Clean(importPath))
-							imports[nicepath] = true
+							imports[nicepath] = importPath
 							//names[path.Join(dir,path.Clean(importSpec.Name.String()))]=importPath
 							names[importSpec.Name.String()]=nicepath
 						}
@@ -74,16 +74,16 @@ func (maker) VisitDir(string, *os.Dir) bool { return true }
 func (maker) VisitFile(f string, _ *os.Dir) {
 	if endswith(f, ".gotgo.go") {
 		fmt.Printf("# ignoring %s, since it's a generated file\n", f)
-	} else if path.Ext(f) == ".go" {
+	} else if endswith(f, ".go") {
 		deps := make([]string, 1, 1000) // FIXME stupid hardcoded limit...x
 		deps[0] = f
 		pname, imports, names, err := getImports(f)
 		if err != nil {
 			fmt.Println("# error: ", err)
 		}
-		for i,_ := range imports {
+		for i,ii := range imports {
 			fmt.Printf("# %s imports %s\n", f, i)
-			createGofile(i, names)
+			createGofile(i, ii, names)
 			deps = deps[0:len(deps)+1]
 			deps[len(deps)-1] = i + ".$(O)"
 		}
@@ -122,9 +122,9 @@ func (maker) VisitFile(f string, _ *os.Dir) {
 		if err != nil {
 			fmt.Println("# error: ", err)
 		}
-		for i,_ := range imports {
+		for i,ii := range imports {
 			fmt.Printf("# %s depends on %s\n", f, i)
-			createGofile(i, names)
+			createGofile(i, ii, names)
 			deps = deps[0:len(deps)+1]
 			deps[len(deps)-1] = i + ".$(O)"
 		}
@@ -145,7 +145,7 @@ func (maker) VisitFile(f string, _ *os.Dir) {
 	}
 }
 
-func createGofile(sourcePath string, names map[string]string) {
+func createGofile(sourcePath, importPath string, names map[string]string) {
 	switch n := strings.Index(sourcePath, "("); n {
 	case -1:
 		// ignore non-templated import...
@@ -155,15 +155,20 @@ func createGofile(sourcePath string, names map[string]string) {
 		gotname := basename + ".got"
 		gotgoname := gotname + "go"
 		goname := sourcePath + ".go"
-		pkggotname := path.Join(pkgdir,gotname)
+		nip := strings.Index(importPath, "(")
+		pkggotname := path.Join(pkgdir,path.Clean(importPath[0:nip]+".gotgo"))
 
 		if fileexists(gotname) {
 			fmt.Printf("%s: %s\n\t$<", goname, gotgoname)
 		} else if fileexists(pkggotname) {
-			fmt.Printf("# looks like we require %s as installed package...", gotname)
-			fmt.Printf("%s: $(pkgdir)/%s\n\t$<", goname, gotgoname)
+			fmt.Printf("# looks like we require %s as installed package...\n",
+				gotname)
+			dir,_ := path.Split(goname)
+			fmt.Printf("%s: $(pkgdir)/%s\n\tmkdir -p %s\n\t$<",
+				goname, importPath[0:nip]+".gotgo", dir)
 		} else {
-			fmt.Printf("# I don't know how to make %s from %s\n", goname, gotname)
+			fmt.Printf("# I don't know how to make %s from %s or %s\n",
+				goname, gotname, pkggotname)
 			return
 		}
 		// We've figured out what gotgo binary to use to create our go
@@ -173,18 +178,23 @@ func createGofile(sourcePath string, names map[string]string) {
 		scan.Init(sourcePath, []byte(typesname), nil, 0)
 		types, error := buildit.TypeList(&scan)
 		if error != nil { return }
-		// Now we want to figure out how to modify the import path
-		cuttable := ""
-		for i,v := range path.Clean(goname) {
-			if v == '/' { cuttable = path.Clean(goname)[0:i+1] }
-		}
+		// Now we want to figure out how to modify the import path The
+		// import paths must be written relative to sourcePath, but we
+		// only know them relative to the Makefile position.
 		relnames := make(map[string]string)
+		// ds is the set of directories we might care to strip...
+		ds := dirs(path.Clean(goname))
 		for k,v := range names {
-			if v[0:len(cuttable)] == cuttable {
-				relnames[k] = "./" + v[len(cuttable):]
-			} else {
-				relnames[k] = v
+			gotmismatch := false
+			for x:=len(ds)-1;x>=0;x-- {
+				if !gotmismatch && v[0:len(ds[x])+1] == ds[x]+"/" {
+					v = v[len(ds[x])+1:]
+				} else {
+					v = "../" + v
+				}
 			}
+			if v[0] != '.' { v = "./" + v }	
+			relnames[k] = v
 		}
 		for _, a := range buildit.GetGotgoArguments(types, relnames) {
 			fmt.Printf(" '%s'", a)
@@ -261,4 +271,25 @@ func fileexists(f string) bool {
 
 func endswith(s, end string) bool {
 	return len(s) >= len(end) && s[len(s) - len(end):] == end
+}
+
+func taketo(s, sep string) string {
+	n := strings.Index(s, sep)
+	if n == -1 { return "" }
+	return s[0:n]
+}
+
+func dirs(s string) []string {
+	out := make([]string, 0, len(s))
+	s,_ = path.Split(s) // drop filename
+	if s == "" { return out }
+	s = s[0:len(s)-1]
+	for {
+		d,ld := path.Split(s)
+		out = out[0:len(out)+1]
+		out[len(out)-1] = ld
+		if d == "" { return out }
+		s = d[0:len(d)-1]
+	}
+	return out
 }

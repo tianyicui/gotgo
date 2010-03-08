@@ -4,14 +4,17 @@ set -ev
 touch src/*.go
 make Makefile
 
-make
+# This is ugly, but I don't know how else to test that installing
+# .gotgo files works properly without changing GOROOT or something
+# drastic like that...
+make install
 
-# FIXME: gotimports seems now to be buggy...
+# FIXME: gotimports seems to now be buggy...
 #./bin/gotimports tests/example.go
-make tests/example
+make test
 
-test -f 'tests/demo/slice.gotgo'
-test -f 'tests/demo/slice(list.List).go'
+test -f 'tests/gotgo/slice(int).go'
+test -f 'tests/gotgo/slice(list.List).go'
 test -f 'tests/test(string).go'
 
 ./tests/example
