@@ -54,16 +54,13 @@ $(pkgdir)/gotgo/slice.gotgo: pkg/gotgo/slice.gotgo
 
 # ignoring pkg/gotgo/slice.got.go, since it's a generated file
 # ignoring pkg/gotgo/slice.gotgo.go, since it's a generated file
-# src/got/buildit.go imports src/gotgo/slice(string)
 # I don't know how to make src/gotgo/slice(string).go from src/gotgo/slice.got or /mnt/home/droundy/src/go/pkg/gotgo/slice.gotgo
 src/got/buildit.$(O): src/got/buildit.go src/gotgo/slice(string).$(O)
 
-# src/got/gotgo.go imports src/got/buildit
 src/got/gotgo.$(O): src/got/gotgo.go src/got/buildit.$(O)
 
 src/gotgo/slice(string).$(O): src/gotgo/slice(string).go
 
-# src/gotgo.go imports src/got/gotgo
 bin/gotgo: src/gotgo.$(O)
 	@mkdir -p bin
 	$(LD) -o $@ $<
@@ -71,8 +68,6 @@ $(bindir)/gotgo: bin/gotgo
 	cp $< $@
 src/gotgo.$(O): src/gotgo.go src/got/gotgo.$(O)
 
-# src/gotimports.go imports src/got/gotgo
-# src/gotimports.go imports src/got/buildit
 bin/gotimports: src/gotimports.$(O)
 	@mkdir -p bin
 	$(LD) -o $@ $<
@@ -80,8 +75,6 @@ $(bindir)/gotimports: bin/gotimports
 	cp $< $@
 src/gotimports.$(O): src/gotimports.go src/got/buildit.$(O) src/got/gotgo.$(O)
 
-# src/gotmake.go imports src/got/buildit
-# src/gotmake.go imports src/gotgo/slice(string)
 # looks like we require src/gotgo/slice.got as installed package...
 src/gotgo/slice(string).go: $(pkgdir)/./gotgo/slice.gotgo
 	mkdir -p src/gotgo/
@@ -101,21 +94,16 @@ tests/demo/list.gotgo: tests/demo/list.got
 
 # ignoring tests/demo/list.got.go, since it's a generated file
 # ignoring tests/demo/list.gotgo.go, since it's a generated file
-# tests/example.go imports tests/demo/list(int)
 tests/demo/list(int).go: tests/demo/list.gotgo
 	$< 'int' > "$@"
-# tests/example.go imports tests/test(string)
 tests/test(string).go: tests/test.gotgo
 	$< 'string' > "$@"
-# tests/example.go imports tests/gotgo/slice(int)
 # looks like we require tests/gotgo/slice.got as installed package...
 tests/gotgo/slice(int).go: $(pkgdir)/./gotgo/slice.gotgo
 	mkdir -p tests/gotgo/
 	$< 'int' > "$@"
-# tests/example.go imports tests/test(int)
 tests/test(int).go: tests/test.gotgo
 	$< 'int' > "$@"
-# tests/example.go imports tests/gotgo/slice(list.List)
 # looks like we require tests/gotgo/slice.got as installed package...
 tests/gotgo/slice(list.List).go: $(pkgdir)/./gotgo/slice.gotgo
 	mkdir -p tests/gotgo/
@@ -127,9 +115,6 @@ tests/example.$(O): tests/example.go tests/demo/list(int).$(O) tests/gotgo/slice
 
 tests/gotgo/slice(int).$(O): tests/gotgo/slice(int).go
 
-# tests/gotgo/slice(list.List).go imports tests/demo/list(int)
-tests/demo/list(int).go: tests/demo/list.gotgo
-	$< 'int' > "$@"
 tests/gotgo/slice(list.List).$(O): tests/gotgo/slice(list.List).go tests/demo/list(int).$(O)
 
 tests/test(int).$(O): tests/test(int).go

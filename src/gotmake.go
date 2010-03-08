@@ -84,7 +84,7 @@ func (maker) VisitFile(f string, _ *os.Dir) {
 			fmt.Println("# error: ", err)
 		}
 		for i,ii := range imports {
-			fmt.Printf("# %s imports %s\n", f, i)
+			// fmt.Printf("# %s imports %s\n", f, i)
 			createGofile(i, ii, names)
 			deps = stringslice.Append(deps, i + ".$(O)")
 		}
@@ -100,7 +100,12 @@ func (maker) VisitFile(f string, _ *os.Dir) {
 				installbins += " " + installname
 			}
 		}
+		if isDone(objname) {
+			// We've already got a rule for this object file, so just quit now.
+			return
+		}
 		fmt.Print(objname+":")
+		done(objname)
 		for _,d := range deps {
 			fmt.Print(" "+d)
 		}
@@ -111,6 +116,7 @@ func (maker) VisitFile(f string, _ *os.Dir) {
 			dir,_ := path.Split(installname)
 			fmt.Printf("%s: %s\n\tmkdir -p %s\n\tcp $< $@\n\n",
 				installname, objname, dir)
+			done(installname)
 			installpkgs += " " + installname
 		}
 		fmt.Print("\n")
@@ -129,7 +135,12 @@ func (maker) VisitFile(f string, _ *os.Dir) {
 			deps = stringslice.Append(deps, i + ".$(O)")
 		}
     sort.SortStrings(deps) // alphebatize all these deps
+		if isDone(f+"go") {
+			// Quit early if we've already got a rule for making the .gotgo file.
+			return
+		}
 		fmt.Printf("%s: %s", f+"go", f)
+		done(f+"go")
 		for _,d := range deps {
 			fmt.Print(" "+d)
 		}
@@ -139,6 +150,7 @@ func (maker) VisitFile(f string, _ *os.Dir) {
 			installname := fmt.Sprintf("$(pkgdir)/%s", f[4:]+"go")
 			dir,_ := path.Split(installname)
 			fmt.Printf("%s: %s\n\tmkdir -p %s\n\tcp $< $@\n\n",installname,f+"go",dir)
+			done(installname)
 			installpkgs += " " + installname
 		}
 		fmt.Print("\n")
@@ -158,14 +170,19 @@ func createGofile(sourcePath, importPath string, names map[string]string) {
 		nip := strings.Index(importPath, "(")
 		pkggotname := path.Join(pkgdir,path.Clean(importPath[0:nip]+".gotgo"))
 
-		if fileexists(gotname) {
+		if isDone(goname) {
+			// We already know how to build goname...
+			return
+		} else if fileexists(gotname) {
 			fmt.Printf("%s: %s\n\t$<", goname, gotgoname)
+			done(goname)
 		} else if fileexists(pkggotname) {
 			fmt.Printf("# looks like we require %s as installed package...\n",
 				gotname)
 			dir,_ := path.Split(goname)
 			fmt.Printf("%s: $(pkgdir)/%s\n\tmkdir -p %s\n\t$<",
 				goname, importPath[0:nip]+".gotgo", dir)
+			done(goname)
 		} else {
 			fmt.Printf("# I don't know how to make %s from %s or %s\n",
 				goname, gotname, pkggotname)
@@ -225,6 +242,14 @@ func (seeker) VisitFile(f string, _ *os.Dir) {
 		}
 	}
 }
+
+type void struct{}
+var alreadyDone = make(map[string]void)
+func isDone(targ string) bool {
+	_, ok := alreadyDone[targ]
+	return ok
+}
+func done(targ string) { alreadyDone[targ] = void{} }
 
 var mybinfiles = ""
 var mypackages = ""
