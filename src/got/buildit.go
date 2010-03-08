@@ -11,10 +11,13 @@ import (
 	"fmt"
 	"exec"
 	"path"
-	"strconv"
 	"strings"
+	"bytes"
 	"go/scanner"
 	"go/token"
+	"go/ast"
+	"go/parser"
+	"go/printer"
 	stringslice "../gotgo/slice(string)"
 )
 
@@ -148,34 +151,50 @@ func TypeList(s *scanner.Scanner) (types []string, error os.Error) {
 	return
 }
 
-func GetGotgoArguments(types []string, names map[string]string) (args []string) {
-	for _,t := range types {
-		if strings.Index(t, ".") != -1 {
-			im := t[0:strings.Index(t,".")]
-			n, ok := names[im]
-			if !ok {
-				fmt.Println("# Unrecognized import: "+im+" from ", names)
-				continue
-			}
-			args = stringslice.Append(args, "--import")
-			args = stringslice.Append(args, "import "+im+" "+strconv.Quote(n))
-		}
-	}
-	for _,t := range types {
-		// FIXME: we could be more efficient if we introduced an "Expand"
-		// function in the slice got file, which could allocate all this
-		// space for us.
-		args = stringslice.Append(args, t)
-	}
-	return
+type getimps struct {
+	imps *[]string
 }
-
-func GetGofile(fname, got string, types []string, names map[string]string) os.Error {
-	args0 := GetGotgoArguments(types, names)
-	args := stringslice.Cat([]string{got+"go"}, args0)
-	error := execpout(fname, ".", args)
-	if error != nil {
-		return Explain("execpout "+args[0]+": ", error)
+func (g getimps) Visit(x interface{}) ast.Visitor {
+	switch v := x.(type) {
+	case *ast.SelectorExpr:
+		*g.imps = stringslice.Append(*g.imps, pretty(v.X))
+	}
+	if x != nil {
+		return g
 	}
 	return nil
+}
+
+// This parses an import statement, such as "./foo/bar(int,baz.T(foo.T))",
+// returning a list of types and a list of imports that are needed
+// (e.g. baz and foo in the above example).
+func ParseImport(s string) (types, imports []string) {
+	// First, I want to cut off any preliminary directories, so the
+	// import should look like a function call.
+	n := strings.Index(s, "(")
+	if n < 1 { return }
+	start := 0
+	for i := n-1; i>=0; i-- {
+		if s[i] == '/' {
+			start = i+1
+			break
+		}
+	}
+	s = s[start:]
+	// Now we just need to parse the apparent function call...
+	x, _ := parser.ParseExpr(s, s, nil)
+	is := []string{}
+	callexpr, ok := x.(*ast.CallExpr)
+	if !ok { return } // FIXME: need error handling?
+	for _, texpr := range callexpr.Args {
+		types = stringslice.Append(types, pretty(texpr))
+		ast.Walk(getimps{&is}, texpr)
+	}
+	return types, is
+}
+
+func pretty(expr interface{}) string {
+	b := bytes.NewBufferString("")
+	printer.Fprint(b, expr)
+	return b.String()
 }

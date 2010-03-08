@@ -12,10 +12,11 @@ test: tests/example
 install: installbins installpkgs
 
 
-binaries:  pkg/gotgo/finalizer.gotgo pkg/gotgo/slice.gotgo bin/gotgo bin/gotimports bin/gotmake
+include $(GOROOT)/src/Make.$(GOARCH)
+
+binaries:  pkg/gotgo/finalizer.gotgo pkg/gotgo/slice.gotgo bin/gotgo bin/gotmake
 packages:  pkg/gotgo/finalizer.gotgo pkg/gotgo/slice.gotgo
 
-include $(GOROOT)/src/Make.$(GOARCH)
 ifndef GOBIN
 GOBIN=$(HOME)/bin
 endif
@@ -26,7 +27,7 @@ space := $(nullstring) # a space at the end
 bindir=$(subst $(space),\ ,$(GOBIN))
 pkgdir=$(subst $(space),\ ,$(GOROOT)/pkg/$(GOOS)_$(GOARCH))
 
-.PHONY: test binaries install installbins installpkgs
+.PHONY: test binaries packages install installbins installpkgs
 .SUFFIXES: .$(O) .go .got .gotgo
 
 .go.$(O):
@@ -68,13 +69,6 @@ $(bindir)/gotgo: bin/gotgo
 	cp $< $@
 src/gotgo.$(O): src/gotgo.go src/got/gotgo.$(O)
 
-bin/gotimports: src/gotimports.$(O)
-	@mkdir -p bin
-	$(LD) -o $@ $<
-$(bindir)/gotimports: bin/gotimports
-	cp $< $@
-src/gotimports.$(O): src/gotimports.go src/got/buildit.$(O) src/got/gotgo.$(O)
-
 # looks like we require src/gotgo/slice.got as installed package...
 src/gotgo/slice(string).go: $(pkgdir)/./gotgo/slice.gotgo
 	mkdir -p src/gotgo/
@@ -107,7 +101,7 @@ tests/test(int).go: tests/test.gotgo
 # looks like we require tests/gotgo/slice.got as installed package...
 tests/gotgo/slice(list.List).go: $(pkgdir)/./gotgo/slice.gotgo
 	mkdir -p tests/gotgo/
-	$< '--import' 'import list "../demo/list(int)"' 'list.List' > "$@"
+	$< --import 'import list "../demo/list(int)"' 'list.List' > "$@"
 tests/example: tests/example.$(O)
 	@mkdir -p bin
 	$(LD) -o $@ $<
@@ -127,5 +121,5 @@ tests/test.gotgo: tests/test.got
 
 # ignoring tests/test.got.go, since it's a generated file
 # ignoring tests/test.gotgo.go, since it's a generated file
-installbins:  $(bindir)/gotgo $(bindir)/gotimports $(bindir)/gotmake
+installbins:  $(bindir)/gotgo $(bindir)/gotmake
 installpkgs:  $(pkgdir)/gotgo/finalizer.gotgo $(pkgdir)/gotgo/slice.gotgo

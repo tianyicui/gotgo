@@ -13,7 +13,6 @@ import (
 	"io/ioutil"
 	"go/parser"
 	"go/ast"
-	"go/scanner"
 	"strconv"
 	"path"
   "sort"
@@ -65,7 +64,7 @@ func cleanbinname(f string) string {
 }
 
 func cleanpkgname(f string) string {
-	if f[0:4] == "pkg/" { return f[4:] }
+	if startswith(f, "pkg/") { return f[4:] }
 	return f
 }
 
@@ -110,12 +109,13 @@ func (maker) VisitFile(f string, _ *os.Dir) {
 			fmt.Print(" "+d)
 		}
 		fmt.Print("\n")
-		if basename[0:4] == "pkg/" && !endswith(basename,"got.go") {
+		if startswith(basename, "pkg/") && !endswith(basename,"got.go") {
 			// we want to install this as a package
-			installname := fmt.Sprintf("$(pkgdir)/%s", objname)
+			installname := fmt.Sprintf("$(pkgdir)/%s.a", basename[4:])
 			dir,_ := path.Split(installname)
-			fmt.Printf("%s: %s\n\tmkdir -p %s\n\tcp $< $@\n\n",
-				installname, objname, dir)
+			fmt.Printf("%s.a: %s\n\tgopack grc $@ $<\n", basename, objname)
+			fmt.Printf("%s: %s.a\n\tmkdir -p %s\n\tcp $< $@\n\n",
+				installname, basename, dir)
 			done(installname)
 			installpkgs += " " + installname
 		}
@@ -145,7 +145,7 @@ func (maker) VisitFile(f string, _ *os.Dir) {
 			fmt.Print(" "+d)
 		}
 		fmt.Print("\n")
-		if f[0:4] == "pkg/" {
+		if startswith(f, "pkg/") {
 			// we want to install this as a got package!
 			installname := fmt.Sprintf("$(pkgdir)/%s", f[4:]+"go")
 			dir,_ := path.Split(installname)
@@ -162,8 +162,10 @@ func createGofile(sourcePath, importPath string, names map[string]string) {
 	case -1:
 		// ignore non-templated import...
 	default:
+		// Begin by scanning the type parameters in the import
+		types, imps := buildit.ParseImport(sourcePath)
+		//fmt.Printf("# I see types %v and imports %v\n", types, imps)
 		basename := sourcePath[0:n]
-		typesname := sourcePath[n+1:]
 		gotname := basename + ".got"
 		gotgoname := gotname + "go"
 		goname := sourcePath + ".go"
@@ -188,13 +190,6 @@ func createGofile(sourcePath, importPath string, names map[string]string) {
 				goname, gotname, pkggotname)
 			return
 		}
-		// We've figured out what gotgo binary to use to create our go
-		// file, and now just need the arguments.
-		// Begin by scanning the type parameters in the import
-		var scan scanner.Scanner
-		scan.Init(sourcePath, []byte(typesname), nil, 0)
-		types, error := buildit.TypeList(&scan)
-		if error != nil { return }
 		// Now we want to figure out how to modify the import path The
 		// import paths must be written relative to sourcePath, but we
 		// only know them relative to the Makefile position.
@@ -213,7 +208,15 @@ func createGofile(sourcePath, importPath string, names map[string]string) {
 			if v[0] != '.' { v = "./" + v }	
 			relnames[k] = v
 		}
-		for _, a := range buildit.GetGotgoArguments(types, relnames) {
+		for _, i := range imps {
+			n, ok := relnames[i]
+			if !ok {
+				fmt.Print(" --import 'import "+strconv.Quote(i)+"'") // FIXME
+			} else {
+				fmt.Print(" --import 'import "+i+" "+strconv.Quote(n)+"'")
+			}
+		}
+		for _, a := range types {
 			fmt.Printf(" '%s'", a)
 		}
 		fmt.Printf(" > \"$@\"\n")
@@ -233,11 +236,11 @@ func (seeker) VisitFile(f string, _ *os.Dir) {
 		if pname == "main" && len(f) > 4 && f[0:4] != "test" &&
 			!endswith(f, ".gotgo") {
 			mybinfiles += " " + cleanbinname(basename)
-		} else if len(f) > 4 && f[0:4] == "pkg/" {
+		} else if startswith(f, "pkg/") {
 			mypackages += " " + basename + ".a"
 		}
 	} else if endswith(f, ".got") {
-		if len(f) > 4 && f[0:4] == "pkg/" {
+		if startswith(f, "pkg/") {
 			mypackages += " " + f + "go"
 		}
 	}
@@ -262,10 +265,11 @@ func main() {
 	path.Walk(".", seeker{}, nil)
 	fmt.Printf(`
 
+include $(GOROOT)/src/Make.$(GOARCH)
+
 binaries: %s
 packages: %s
 
-include $(GOROOT)/src/Make.$(GOARCH)
 ifndef GOBIN
 GOBIN=$(HOME)/bin
 endif
@@ -276,7 +280,7 @@ space := $(nullstring) # a space at the end
 bindir=$(subst $(space),\ ,$(GOBIN))
 pkgdir=$(subst $(space),\ ,$(GOROOT)/pkg/$(GOOS)_$(GOARCH))
 
-.PHONY: test binaries install installbins installpkgs
+.PHONY: test binaries packages install installbins installpkgs
 .SUFFIXES: .$(O) .go .got .gotgo
 
 `, mybinfiles, mypackages)
@@ -298,6 +302,10 @@ func fileexists(f string) bool {
 
 func endswith(s, end string) bool {
 	return len(s) >= len(end) && s[len(s) - len(end):] == end
+}
+
+func startswith(s, st string) bool {
+	return len(s) >= len(st) && s[0:len(st)] == st
 }
 
 func taketo(s, sep string) string {
