@@ -17,6 +17,7 @@ import (
 	"strconv"
 	"path"
   "sort"
+	stringslice "./gotgo/slice(string)"
 	"./got/buildit"
 )
 
@@ -74,9 +75,10 @@ func (maker) VisitDir(string, *os.Dir) bool { return true }
 func (maker) VisitFile(f string, _ *os.Dir) {
 	if endswith(f, ".gotgo.go") {
 		fmt.Printf("# ignoring %s, since it's a generated file\n", f)
+	} else if endswith(f, ".got.go") {
+		fmt.Printf("# ignoring %s, since it's a generated file\n", f)
 	} else if endswith(f, ".go") {
-		deps := make([]string, 1, 1000) // FIXME stupid hardcoded limit...x
-		deps[0] = f
+		deps := []string{f}
 		pname, imports, names, err := getImports(f)
 		if err != nil {
 			fmt.Println("# error: ", err)
@@ -84,8 +86,7 @@ func (maker) VisitFile(f string, _ *os.Dir) {
 		for i,ii := range imports {
 			fmt.Printf("# %s imports %s\n", f, i)
 			createGofile(i, ii, names)
-			deps = deps[0:len(deps)+1]
-			deps[len(deps)-1] = i + ".$(O)"
+			deps = stringslice.Append(deps, i + ".$(O)")
 		}
     sort.SortStrings(deps[1:]) // alphebatize all deps but first
 		basename := f[0:len(f)-3]
@@ -104,7 +105,7 @@ func (maker) VisitFile(f string, _ *os.Dir) {
 			fmt.Print(" "+d)
 		}
 		fmt.Print("\n")
-		if basename[0:4] == "pkg/" && !endswith(basename,"gotgo.go") {
+		if basename[0:4] == "pkg/" && !endswith(basename,"got.go") {
 			// we want to install this as a package
 			installname := fmt.Sprintf("$(pkgdir)/%s", objname)
 			dir,_ := path.Split(installname)
@@ -117,7 +118,7 @@ func (maker) VisitFile(f string, _ *os.Dir) {
 		fmt.Printf("# found file %s to build...\n", f)
 		// YUCK: the following code essentially duplicates the code in the
 		// previous if case!
-		deps := make([]string, 1, 1000) // FIXME stupid hardcoded limit...x
+		deps := []string{}
 		_, imports, names, err := getImports(f)
 		if err != nil {
 			fmt.Println("# error: ", err)
@@ -125,8 +126,7 @@ func (maker) VisitFile(f string, _ *os.Dir) {
 		for i,ii := range imports {
 			fmt.Printf("# %s depends on %s\n", f, i)
 			createGofile(i, ii, names)
-			deps = deps[0:len(deps)+1]
-			deps[len(deps)-1] = i + ".$(O)"
+			deps = stringslice.Append(deps, i + ".$(O)")
 		}
     sort.SortStrings(deps) // alphebatize all these deps
 		fmt.Printf("%s: %s", f+"go", f)
@@ -183,12 +183,12 @@ func createGofile(sourcePath, importPath string, names map[string]string) {
 		// only know them relative to the Makefile position.
 		relnames := make(map[string]string)
 		// ds is the set of directories we might care to strip...
-		ds := dirs(path.Clean(goname))
+		ds := stringslice.Reverse(dirs(path.Clean(goname)))
 		for k,v := range names {
 			gotmismatch := false
-			for x:=len(ds)-1;x>=0;x-- {
-				if !gotmismatch && v[0:len(ds[x])+1] == ds[x]+"/" {
-					v = v[len(ds[x])+1:]
+			for _,d := range ds {
+				if !gotmismatch && v[0:len(d)+1] == d+"/" {
+					v = v[len(d)+1:]
 				} else {
 					v = "../" + v
 				}
@@ -208,16 +208,18 @@ type seeker struct {
 }
 func (seeker) VisitDir(string, *os.Dir) bool { return true }
 func (seeker) VisitFile(f string, _ *os.Dir) {
-	switch path.Ext(f) {
-	case ".go":
+	if endswith(f, ".got.go") {
+		// don't do anything, since this is a temporary file...
+	} else if endswith(f, ".go") {
 		pname, _, _, _ := getImports(f)
 		basename := f[0:len(f)-3]
-		if pname == "main" && len(f) > 4 && f[0:4] != "test" {
+		if pname == "main" && len(f) > 4 && f[0:4] != "test" &&
+			!endswith(f, ".gotgo") {
 			mybinfiles += " " + cleanbinname(basename)
 		} else if len(f) > 4 && f[0:4] == "pkg/" {
 			mypackages += " " + basename + ".a"
 		}
-	case ".got":
+	} else if endswith(f, ".got") {
 		if len(f) > 4 && f[0:4] == "pkg/" {
 			mypackages += " " + f + "go"
 		}
@@ -279,15 +281,13 @@ func taketo(s, sep string) string {
 	return s[0:n]
 }
 
-func dirs(s string) []string {
-	out := make([]string, 0, len(s))
+func dirs(s string) (out []string) {
 	s,_ = path.Split(s) // drop filename
 	if s == "" { return out }
 	s = s[0:len(s)-1]
 	for {
 		d,ld := path.Split(s)
-		out = out[0:len(out)+1]
-		out[len(out)-1] = ld
+		out = stringslice.Append(out, ld)
 		if d == "" { return out }
 		s = d[0:len(d)-1]
 	}

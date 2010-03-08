@@ -15,6 +15,7 @@ import (
 	"strings"
 	"go/scanner"
 	"go/token"
+	stringslice "../gotgo/slice(string)"
 )
 
 func getmap(m map[string]string, k string) (v string) {
@@ -106,7 +107,6 @@ func getType(s *scanner.Scanner) (t string, pos token.Position, tok token.Token,
 }
 
 func GetTypes(s *scanner.Scanner) (params []string, types []string, pos token.Position, error os.Error) {
-	params, types = make([]string,0,100), make([]string,0,100)
 	tok := token.COMMA
 	var lit []byte
 	for tok == token.COMMA {
@@ -123,10 +123,8 @@ func GetTypes(s *scanner.Scanner) (params []string, types []string, pos token.Po
 			return
 		}
 		tname,pos,tok,lit = getType(s)
-		params = params[0:len(params)+1]
-		types = types[0:len(params)]
-		params[len(params)-1] = string(par)
-		types[len(params)-1] = string(tname)
+		params = stringslice.Append(params, string(par))
+		types = stringslice.Append(types, string(tname))
 	}
 	if tok != token.RPAREN {
 		error = os.NewError(fmt.Sprintf("inappropriate token %v with lit: %s",
@@ -136,14 +134,12 @@ func GetTypes(s *scanner.Scanner) (params []string, types []string, pos token.Po
 }
 
 func TypeList(s *scanner.Scanner) (types []string, error os.Error) {
-	types = make([]string,0,100)
 	tok := token.COMMA
 	var lit []byte
 	for tok == token.COMMA {
 		var tname string
 		tname,_,tok,lit = getType(s)
-		types = types[0:len(types)+1]
-		types[len(types)-1] = string(tname)
+		types = stringslice.Append(types, string(tname))
 	}
 	if tok != token.RPAREN {
 		error = os.NewError(fmt.Sprintf("inappropriate token %v with lit: %s",
@@ -152,13 +148,7 @@ func TypeList(s *scanner.Scanner) (types []string, error os.Error) {
 	return
 }
 
-func append(xs *[]string, x string) {
-	*xs = (*xs)[0:len(*xs)+1]
-	(*xs)[len(*xs)-1] = x
-}
-
 func GetGotgoArguments(types []string, names map[string]string) (args []string) {
-	args = make([]string, 0, 4*len(types)+400)
 	for _,t := range types {
 		if strings.Index(t, ".") != -1 {
 			im := t[0:strings.Index(t,".")]
@@ -167,26 +157,22 @@ func GetGotgoArguments(types []string, names map[string]string) (args []string) 
 				fmt.Println("# Unrecognized import: "+im+" from ", names)
 				continue
 			}
-			args = args[0:len(args)+2]
-			args[len(args)-2] = "--import"
-			args[len(args)-1] = "import "+im+" "+strconv.Quote(n)
+			args = stringslice.Append(args, "--import")
+			args = stringslice.Append(args, "import "+im+" "+strconv.Quote(n))
 		}
 	}
-	len0 := len(args)
-	args = args[0:len0 + len(types)]
-	for i,t := range types {
-		args[len0+i] = t
+	for _,t := range types {
+		// FIXME: we could be more efficient if we introduced an "Expand"
+		// function in the slice got file, which could allocate all this
+		// space for us.
+		args = stringslice.Append(args, t)
 	}
 	return
 }
 
 func GetGofile(fname, got string, types []string, names map[string]string) os.Error {
 	args0 := GetGotgoArguments(types, names)
-	args := make([]string, len(args0)+1)
-	args[0] = got+"go"
-	for i,a := range args0 {
-		args[i+1] = a
-	}
+	args := stringslice.Cat([]string{got+"go"}, args0)
 	error := execpout(fname, ".", args)
 	if error != nil {
 		return Explain("execpout "+args[0]+": ", error)

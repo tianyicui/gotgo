@@ -12,8 +12,8 @@ test: tests/example
 install: installbins installpkgs
 
 
-binaries:  pkg/gotgo/slice.gotgo bin/gotgo bin/gotimports bin/gotmake
-packages:  pkg/gotgo/slice.gotgo pkg/gotgo/slice.got.a
+binaries:  pkg/gotgo/finalizer.gotgo pkg/gotgo/slice.gotgo bin/gotgo bin/gotimports bin/gotmake
+packages:  pkg/gotgo/finalizer.gotgo pkg/gotgo/slice.gotgo
 
 include $(GOROOT)/src/Make.$(GOARCH)
 ifndef GOBIN
@@ -34,25 +34,34 @@ pkgdir=$(subst $(space),\ ,$(GOROOT)/pkg/$(GOOS)_$(GOARCH))
 .got.gotgo:
 	gotgo "$<"
 
+# found file pkg/gotgo/finalizer.got to build...
+# error:  pkg/gotgo/finalizer.got:6:18: expected ';', found '('
+pkg/gotgo/finalizer.gotgo: pkg/gotgo/finalizer.got
+$(pkgdir)/gotgo/finalizer.gotgo: pkg/gotgo/finalizer.gotgo
+	mkdir -p $(pkgdir)/gotgo/
+	cp $< $@
+
+
+# ignoring pkg/gotgo/finalizer.got.go, since it's a generated file
+# ignoring pkg/gotgo/finalizer.gotgo.go, since it's a generated file
 # found file pkg/gotgo/slice.got to build...
 # error:  pkg/gotgo/slice.got:1:14: expected ';', found '('
-pkg/gotgo/slice.gotgo: pkg/gotgo/slice.got 
+pkg/gotgo/slice.gotgo: pkg/gotgo/slice.got
 $(pkgdir)/gotgo/slice.gotgo: pkg/gotgo/slice.gotgo
 	mkdir -p $(pkgdir)/gotgo/
 	cp $< $@
 
 
-pkg/gotgo/slice.got.$(O): pkg/gotgo/slice.got.go
-$(pkgdir)/pkg/gotgo/slice.got.$(O): pkg/gotgo/slice.got.$(O)
-	mkdir -p $(pkgdir)/pkg/gotgo/
-	cp $< $@
-
-
+# ignoring pkg/gotgo/slice.got.go, since it's a generated file
 # ignoring pkg/gotgo/slice.gotgo.go, since it's a generated file
-src/got/buildit.$(O): src/got/buildit.go
+# src/got/buildit.go imports src/gotgo/slice(string)
+# I don't know how to make src/gotgo/slice(string).go from src/gotgo/slice.got or /mnt/home/droundy/src/go/pkg/gotgo/slice.gotgo
+src/got/buildit.$(O): src/got/buildit.go src/gotgo/slice(string).$(O)
 
 # src/got/gotgo.go imports src/got/buildit
 src/got/gotgo.$(O): src/got/gotgo.go src/got/buildit.$(O)
+
+src/gotgo/slice(string).$(O): src/gotgo/slice(string).go
 
 # src/gotgo.go imports src/got/gotgo
 bin/gotgo: src/gotgo.$(O)
@@ -72,40 +81,26 @@ $(bindir)/gotimports: bin/gotimports
 src/gotimports.$(O): src/gotimports.go src/got/buildit.$(O) src/got/gotgo.$(O)
 
 # src/gotmake.go imports src/got/buildit
+# src/gotmake.go imports src/gotgo/slice(string)
+# looks like we require src/gotgo/slice.got as installed package...
+src/gotgo/slice(string).go: $(pkgdir)/./gotgo/slice.gotgo
+	mkdir -p src/gotgo/
+	$< 'string' > "$@"
 bin/gotmake: src/gotmake.$(O)
 	@mkdir -p bin
 	$(LD) -o $@ $<
 $(bindir)/gotmake: bin/gotmake
 	cp $< $@
-src/gotmake.$(O): src/gotmake.go src/got/buildit.$(O)
-
-# found file tests/demo/finalizer.got to build...
-# error:  tests/demo/finalizer.got:6:18: expected ';', found '('
-tests/demo/finalizer.gotgo: tests/demo/finalizer.got 
+src/gotmake.$(O): src/gotmake.go src/got/buildit.$(O) src/gotgo/slice(string).$(O)
 
 tests/demo/list(int).$(O): tests/demo/list(int).go
 
 # found file tests/demo/list.got to build...
 # error:  tests/demo/list.got:1:13: expected ';', found '('
-tests/demo/list.gotgo: tests/demo/list.got 
+tests/demo/list.gotgo: tests/demo/list.got
 
-tests/demo/list.got.$(O): tests/demo/list.got.go
-
+# ignoring tests/demo/list.got.go, since it's a generated file
 # ignoring tests/demo/list.gotgo.go, since it's a generated file
-tests/demo/slice(int).$(O): tests/demo/slice(int).go
-
-# tests/demo/slice(list.List).go imports tests/demo/list(int)
-tests/demo/list(int).go: tests/demo/list.gotgo
-	$< 'int' > "$@"
-tests/demo/slice(list.List).$(O): tests/demo/slice(list.List).go tests/demo/list(int).$(O)
-
-# found file tests/demo/slice.got to build...
-# error:  tests/demo/slice.got:1:14: expected ';', found '('
-tests/demo/slice.gotgo: tests/demo/slice.got 
-
-tests/demo/slice.got.$(O): tests/demo/slice.got.go
-
-# ignoring tests/demo/slice.gotgo.go, since it's a generated file
 # tests/example.go imports tests/demo/list(int)
 tests/demo/list(int).go: tests/demo/list.gotgo
 	$< 'int' > "$@"
@@ -143,10 +138,9 @@ tests/test(string).$(O): tests/test(string).go
 
 # found file tests/test.got to build...
 # error:  tests/test.got:1:13: expected ';', found '('
-tests/test.gotgo: tests/test.got 
+tests/test.gotgo: tests/test.got
 
-tests/test.got.$(O): tests/test.got.go
-
+# ignoring tests/test.got.go, since it's a generated file
 # ignoring tests/test.gotgo.go, since it's a generated file
 installbins:  $(bindir)/gotgo $(bindir)/gotimports $(bindir)/gotmake
-installpkgs:  $(pkgdir)/gotgo/slice.gotgo $(pkgdir)/pkg/gotgo/slice.got.$(O)
+installpkgs:  $(pkgdir)/gotgo/finalizer.gotgo $(pkgdir)/gotgo/slice.gotgo
