@@ -199,7 +199,7 @@ func createGofile(sourcePath, importPath string, names map[string]string) {
 		for k,v := range names {
 			gotmismatch := false
 			for _,d := range ds {
-				if !gotmismatch && v[0:len(d)+1] == d+"/" {
+				if !gotmismatch && len(v) > len(d) && v[0:len(d)+1] == d+"/" {
 					v = v[len(d)+1:]
 				} else {
 					v = "../" + v
@@ -280,8 +280,8 @@ space := $(nullstring) # a space at the end
 bindir=$(subst $(space),\ ,$(GOBIN))
 pkgdir=$(subst $(space),\ ,$(GOROOT)/pkg/$(GOOS)_$(GOARCH))
 
-.PHONY: test binaries packages install installbins installpkgs
-.SUFFIXES: .$(O) .go .got .gotgo
+.PHONY: test binaries packages install installbins installpkgs $(EXTRAPHONY)
+.SUFFIXES: .$(O) .go .got .gotgo $(EXTRASUFFIXES)
 
 `, mybinfiles, mypackages)
 	fmt.Print(".go.$(O):\n\tcd `dirname \"$<\"`; $(GC) `basename \"$<\"`\n")
