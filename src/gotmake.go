@@ -238,7 +238,7 @@ func (seeker) VisitFile(f string, _ *os.Dir) {
 		pname, _, _, _ := getImports(f)
 		basename := f[0:len(f)-3]
 		if pname == "main" && len(f) > 4 && f[0:4] != "test" &&
-			!endswith(f, ".gotgo") {
+			!endswith(basename, ".gotgo") {
 			mybinfiles += " " + cleanbinname(basename)
 		} else if startswith(f, "pkg/") {
 			mypackages += " " + basename + ".a"

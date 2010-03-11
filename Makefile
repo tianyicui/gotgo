@@ -14,8 +14,8 @@ install: installbins installpkgs
 
 include $(GOROOT)/src/Make.$(GOARCH)
 
-binaries:  pkg/gotgo/finalizer.gotgo pkg/gotgo/slice.gotgo bin/gotgo bin/gotmake
-packages:  pkg/gotgo/box.gotgo pkg/gotgo/finalizer.gotgo pkg/gotgo/slice.gotgo
+binaries:  bin/gotgo bin/gotmake
+packages:  pkg/gotgo/box.gotgo pkg/gotgo/box.gotgo.a pkg/gotgo/finalizer.gotgo pkg/gotgo/finalizer.gotgo.a pkg/gotgo/slice.gotgo pkg/gotgo/slice.gotgo.a
 
 ifndef GOBIN
 GOBIN=$(HOME)/bin
@@ -43,6 +43,8 @@ $(pkgdir)/gotgo/box.gotgo: pkg/gotgo/box.gotgo
 	cp $< $@
 
 
+# ignoring pkg/gotgo/box.got.go, since it's a generated file
+# ignoring pkg/gotgo/box.gotgo.go, since it's a generated file
 # found file pkg/gotgo/finalizer.got to build...
 # error:  pkg/gotgo/finalizer.got:6:18: expected ';', found '('
 pkg/gotgo/finalizer.gotgo: pkg/gotgo/finalizer.got
