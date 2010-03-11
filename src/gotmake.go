@@ -208,11 +208,15 @@ func createGofile(sourcePath, importPath string, names map[string]string) {
 			if v[0] != '.' { v = "./" + v }	
 			relnames[k] = v
 		}
+		importsdone := make(map[string]bool)
 		for _, i := range imps {
+			_, alreadydone := importsdone[i]
+			if alreadydone { continue }
 			n, ok := relnames[i]
 			if !ok {
 				fmt.Print(" --import 'import "+strconv.Quote(i)+"'") // FIXME
 			} else {
+				importsdone[i] = true
 				fmt.Print(" --import 'import "+i+" "+strconv.Quote(n)+"'")
 			}
 		}
