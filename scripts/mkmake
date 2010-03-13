@@ -1,3 +1,5 @@
 set -ev
 cp -f scripts/make.header Makefile
 ./bin/gotmake >> Makefile
+cp -f scripts/make.header Makefile.dev
+./bin/gotmake --without-gotgo=false --ignore-installed=false >> Makefile.dev

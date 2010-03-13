@@ -65,7 +65,9 @@ $(pkgdir)/gotgo/slice.gotgo: pkg/gotgo/slice.gotgo
 
 # ignoring pkg/gotgo/slice.got.go, since it's a generated file
 # ignoring pkg/gotgo/slice.gotgo.go, since it's a generated file
-# File src/gotgo/slice(string).go is generated from a got template.
+ifneq ($(strip $(shell which gotgo)),)
+# I don't know how to make src/gotgo/slice(string).go from src/gotgo/slice.got or /mnt/home/droundy/src/go/pkg/gotgo/slice.gotgo
+endif
 src/got/buildit.$(O): src/got/buildit.go src/gotgo/slice(string).$(O)
 
 src/got/gotgo.$(O): src/got/gotgo.go src/got/buildit.$(O)
@@ -79,7 +81,12 @@ $(bindir)/gotgo: bin/gotgo
 	cp $< $@
 src/gotgo.$(O): src/gotgo.go src/got/gotgo.$(O)
 
-# File src/gotgo/slice(string).go is generated from a got template.
+ifneq ($(strip $(shell which gotgo)),)
+# looks like we require src/gotgo/slice.got as installed package...
+src/gotgo/slice(string).go: $(pkgdir)/./gotgo/slice.gotgo
+	mkdir -p src/gotgo/
+	$< 'string' > "$@"
+endif
 bin/gotmake: src/gotmake.$(O)
 	@mkdir -p bin
 	$(LD) -o $@ $<
@@ -95,11 +102,30 @@ tests/demo/list.gotgo: tests/demo/list.got
 
 # ignoring tests/demo/list.got.go, since it's a generated file
 # ignoring tests/demo/list.gotgo.go, since it's a generated file
-# File tests/demo/list(int).go is generated from a got template.
-# File tests/test(string).go is generated from a got template.
-# File tests/gotgo/slice(int).go is generated from a got template.
-# File tests/test(int).go is generated from a got template.
-# File tests/gotgo/slice(list.List).go is generated from a got template.
+ifneq ($(strip $(shell which gotgo)),)
+tests/demo/list(int).go: tests/demo/list.gotgo
+	$< 'int' > "$@"
+endif
+ifneq ($(strip $(shell which gotgo)),)
+tests/test(string).go: tests/test.gotgo
+	$< 'string' > "$@"
+endif
+ifneq ($(strip $(shell which gotgo)),)
+# looks like we require tests/gotgo/slice.got as installed package...
+tests/gotgo/slice(int).go: $(pkgdir)/./gotgo/slice.gotgo
+	mkdir -p tests/gotgo/
+	$< 'int' > "$@"
+endif
+ifneq ($(strip $(shell which gotgo)),)
+tests/test(int).go: tests/test.gotgo
+	$< 'int' > "$@"
+endif
+ifneq ($(strip $(shell which gotgo)),)
+# looks like we require tests/gotgo/slice.got as installed package...
+tests/gotgo/slice(list.List).go: $(pkgdir)/./gotgo/slice.gotgo
+	mkdir -p tests/gotgo/
+	$< --import 'import list "../demo/list(int)"' 'list.List' > "$@"
+endif
 tests/example: tests/example.$(O)
 	@mkdir -p bin
 	$(LD) -o $@ $<
@@ -107,7 +133,6 @@ tests/example.$(O): tests/example.go tests/demo/list(int).$(O) tests/gotgo/slice
 
 tests/gotgo/slice(int).$(O): tests/gotgo/slice(int).go
 
-# File tests/demo/list(int).go is generated from a got template.
 tests/gotgo/slice(list.List).$(O): tests/gotgo/slice(list.List).go tests/demo/list(int).$(O)
 
 tests/test(int).$(O): tests/test(int).go

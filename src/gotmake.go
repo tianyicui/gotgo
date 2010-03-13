@@ -16,9 +16,16 @@ import (
 	"strconv"
 	"path"
   "sort"
+	"flag"
 	stringslice "./gotgo/slice(string)"
 	"./got/buildit"
 )
+
+var ignoreInstalled = flag.Bool("ignore-installed", true,
+	"don't require that installed gotgo packages be present")
+
+var noGotgo = flag.Bool("without-gotgo", true,
+	"don't require that gotgo be installed")
 
 func getImports(filename string) (pkgname string,
 	imports map[string]string, names map[string]string, error os.Error) {
@@ -71,7 +78,8 @@ func cleanpkgname(f string) string {
 type maker struct {
 }
 func (maker) VisitDir(string, *os.Dir) bool { return true }
-func (maker) VisitFile(f string, _ *os.Dir) {
+func (maker) VisitFile(f string, stat *os.Dir) {
+	if !stat.IsRegular() { return } // it's something weird...
 	if endswith(f, ".gotgo.go") {
 		fmt.Printf("# ignoring %s, since it's a generated file\n", f)
 	} else if endswith(f, ".got.go") {
@@ -175,10 +183,22 @@ func createGofile(sourcePath, importPath string, names map[string]string) {
 		if isDone(goname) {
 			// We already know how to build goname...
 			return
-		} else if fileexists(gotname) {
+		} else if *noGotgo {
+			// We don't want to rely on gotgo existing.
+			fmt.Printf("# File %s is generated from a got template.\n", goname)
+			return
+		}
+		fmt.Printf("ifneq ($(strip $(shell which gotgo)),)\n")
+		defer fmt.Printf("endif\n")
+		if fileexists(gotname) {
 			fmt.Printf("%s: %s\n\t$<", goname, gotgoname)
 			done(goname)
 		} else if fileexists(pkggotname) {
+			if *ignoreInstalled {
+				// We don't want the makefile to depend on installed packages.
+				fmt.Printf("# we assume %s is present...\n", goname)
+				return
+			}
 			fmt.Printf("# looks like we require %s as installed package...\n",
 				gotname)
 			dir,_ := path.Split(goname)
@@ -266,6 +286,7 @@ var pkgdir = path.Join(os.Getenv("GOROOT"),"pkg",
 	os.Getenv("GOOS")+"_"+os.Getenv("GOARCH"))
 
 func main() {
+	flag.Parse()
 	path.Walk(".", seeker{}, nil)
 	fmt.Printf(`
 

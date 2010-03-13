@@ -11,7 +11,7 @@ make install
 
 # FIXME: gotimports seems to now be buggy...
 #./bin/gotimports tests/example.go
-make test
+make -f Makefile.dev test
 
 test -f 'tests/gotgo/slice(int).go'
 test -f 'tests/gotgo/slice(list.List).go'

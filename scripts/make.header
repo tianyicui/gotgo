@@ -3,9 +3,9 @@
 
 all: Makefile binaries
 
-Makefile: bin/gotmake scripts/make.header $(wildcard *.go) $(wildcard *.got)
-	cp -f scripts/make.header $@
-	./bin/gotmake >> $@
+Makefile: bin/gotmake scripts/make.header scripts/mkmake \
+		$(wildcard *.go) $(wildcard *.got)
+	./scripts/mkmake
 
 test: tests/example
 
