@@ -92,3 +92,10 @@ func Reverse(slice []a) (out []a) {
 	}
 	return
 }
+
+func Any(f func(a) bool, slice []a) bool {
+	for _,v:= range slice {
+		if f(v) { return true }
+	}
+	return false
+}
