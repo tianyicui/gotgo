@@ -117,7 +117,8 @@ func (maker) VisitFile(f string, stat *os.Dir) {
 			fmt.Print(" "+d)
 		}
 		fmt.Print("\n")
-		if startswith(basename, "pkg/") && !endswith(basename,"got.go") {
+		if startswith(basename, "pkg/") && strings.Index(basename,"(") == -1 &&
+			!endswith(basename,"got.go") {
 			// we want to install this as a package
 			installname := fmt.Sprintf("$(pkgdir)/%s.a", basename[4:])
 			dir,_ := path.Split(installname)
@@ -254,6 +255,8 @@ func (seeker) VisitDir(string, *os.Dir) bool { return true }
 func (seeker) VisitFile(f string, _ *os.Dir) {
 	if endswith(f, ".got.go") {
 		// don't do anything, since this is a temporary file...
+	} else if strings.Index(f,"(") != -1 {
+		// don't do anything, since it's a templated file...
 	} else if endswith(f, ".go") {
 		pname, _, _, _ := getImports(f)
 		basename := f[0:len(f)-3]
