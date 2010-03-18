@@ -84,6 +84,23 @@ func Cat(slice []a, more []a) []a {
 	return slice
 }
 
+// Cats concatenates several slices, expanding if needed.
+func Cats(slices [][]a) []a {
+	lentot := 0
+	for _,sl := range slices {
+		lentot += len(sl)
+	}
+	out := make([]a, lentot)
+	i := 0
+	for _,sl := range slices {
+		for _,v := range sl {
+			out[i] = v
+			i++
+		}
+	}
+	return out
+}
+
 func Reverse(slice []a) (out []a) {
 	ln := len(slice)
 	out = make([]a, ln)
