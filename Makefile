@@ -1,21 +1,7 @@
 # Copyright 2010 David Roundy, roundyd@physics.oregonstate.edu.
 # All rights reserved.
 
-all: Makefile binaries
-
-Makefile: bin/gotmake scripts/make.header scripts/mkmake \
-		$(wildcard *.go) $(wildcard *.got)
-	./scripts/mkmake
-
-test: tests/example
-
-install: installbins installpkgs
-
-
 include $(GOROOT)/src/Make.$(GOARCH)
-
-binaries:  bin/gotgo bin/gotmake
-packages:  pkg/gotgo/box.gotgo pkg/gotgo/box.gotgo.a pkg/gotgo/finalizer.gotgo pkg/gotgo/finalizer.gotgo.a pkg/gotgo/slice.gotgo pkg/gotgo/slice.gotgo.a
 
 ifndef GOBIN
 GOBIN=$(HOME)/bin
@@ -26,99 +12,51 @@ nullstring :=
 space := $(nullstring) # a space at the end
 bindir=$(subst $(space),\ ,$(GOBIN))
 pkgdir=$(subst $(space),\ ,$(GOROOT)/pkg/$(GOOS)_$(GOARCH))
+srcpkgdir=$(subst $(space),\ ,$(GOROOT)/src/pkg)
 
-.PHONY: test binaries packages install installbins installpkgs $(EXTRAPHONY)
-.SUFFIXES: .$(O) .go .got .gotgo $(EXTRASUFFIXES)
+.PHONY: test binaries packages install
+.SUFFIXES: .$(O) .go .got
+
+all: binaries
+install: all $(bindir)/gotgo $(bindir)/gotimports .installpkgs
+
+binaries:  bin/gotgo bin/gotimports
+packages:  pkg/gotgo/box.got pkg/gotgo/finalizer.got pkg/gotgo/slice.got
 
 .go.$(O):
 	cd `dirname "$<"`; $(GC) `basename "$<"`
-.got.gotgo:
-	gotgo "$<"
 
-# found file pkg/gotgo/box.got to build...
-# error:  pkg/gotgo/box.got:1:12: expected ';', found '('
-pkg/gotgo/box.gotgo: pkg/gotgo/box.got
-$(pkgdir)/gotgo/box.gotgo: pkg/gotgo/box.gotgo
-	mkdir -p $(pkgdir)/gotgo/
+$(srcpkgdir)/%.got: pkg/%.got
+	@test -d $(QUOTED_GOROOT)/src/pkg && mkdir -p `dirname $(srcpkgdir)/$*`
 	cp $< $@
 
-
-# ignoring pkg/gotgo/box.got.go, since it's a generated file
-# ignoring pkg/gotgo/box.gotgo.go, since it's a generated file
-# found file pkg/gotgo/finalizer.got to build...
-# error:  pkg/gotgo/finalizer.got:6:18: expected ';', found '('
-pkg/gotgo/finalizer.gotgo: pkg/gotgo/finalizer.got
-$(pkgdir)/gotgo/finalizer.gotgo: pkg/gotgo/finalizer.gotgo
-	mkdir -p $(pkgdir)/gotgo/
-	cp $< $@
-
-
-# ignoring pkg/gotgo/finalizer.got.go, since it's a generated file
-# ignoring pkg/gotgo/finalizer.gotgo.go, since it's a generated file
-# found file pkg/gotgo/slice.got to build...
-# error:  pkg/gotgo/slice.got:1:14: expected ';', found '('
-pkg/gotgo/slice.gotgo: pkg/gotgo/slice.got
-$(pkgdir)/gotgo/slice.gotgo: pkg/gotgo/slice.gotgo
-	mkdir -p $(pkgdir)/gotgo/
-	cp $< $@
-
-
-# ignoring pkg/gotgo/slice.got.go, since it's a generated file
-# ignoring pkg/gotgo/slice.gotgo.go, since it's a generated file
-# File src/gotgo/slice(string).go is generated from a got template.
 src/got/buildit.$(O): src/got/buildit.go src/gotgo/slice(string).$(O)
-
 src/got/gotgo.$(O): src/got/gotgo.go src/got/buildit.$(O)
-
 src/gotgo/slice(string).$(O): src/gotgo/slice(string).go
+
+ifneq ($(strip $(shell which gotgo)),)
+src/gotgo/slice(string).go: pkg/gotgo/slice.got
+	bin/gotgo -o "$@" "$<" string
+endif
 
 bin/gotgo: src/gotgo.$(O)
 	@mkdir -p bin
 	$(LD) -o $@ $<
 $(bindir)/gotgo: bin/gotgo
 	cp $< $@
-src/gotgo.$(O): src/gotgo.go src/got/gotgo.$(O)
+src/gotgo.$(O): src/gotgo.go src/gotgo/slice(string).$(O)
 
-# File src/gotgo/slice(string).go is generated from a got template.
-bin/gotmake: src/gotmake.$(O)
+bin/gotimports: src/gotimports.$(O)
 	@mkdir -p bin
 	$(LD) -o $@ $<
-$(bindir)/gotmake: bin/gotmake
+$(bindir)/gotimports: bin/gotimports
 	cp $< $@
-src/gotmake.$(O): src/gotmake.go src/gotgo/slice(string).$(O)
+src/gotimports.$(O): src/gotimports.go src/gotgo/slice(string).$(O)
 
-tests/demo/list(int).$(O): tests/demo/list(int).go
+.installpkgs: $(wildcard pkg/gotgo/*.got)
+	@mkdir -p $(srcpkgdir)/gotgo/
+	cp $? $(srcpkgdir)/gotgo/
+	@touch .installpkgs
 
-# found file tests/demo/list.got to build...
-# error:  tests/demo/list.got:1:13: expected ';', found '('
-tests/demo/list.gotgo: tests/demo/list.got
-
-# ignoring tests/demo/list.got.go, since it's a generated file
-# ignoring tests/demo/list.gotgo.go, since it's a generated file
-# File tests/demo/list(int).go is generated from a got template.
-# File tests/test(string).go is generated from a got template.
-# File tests/gotgo/slice(int).go is generated from a got template.
-# File tests/test(int).go is generated from a got template.
-# File tests/gotgo/slice(list.List).go is generated from a got template.
-tests/example: tests/example.$(O)
-	@mkdir -p bin
-	$(LD) -o $@ $<
-tests/example.$(O): tests/example.go tests/demo/list(int).$(O) tests/gotgo/slice(int).$(O) tests/gotgo/slice(list.List).$(O) tests/test(int).$(O) tests/test(string).$(O)
-
-tests/gotgo/slice(int).$(O): tests/gotgo/slice(int).go
-
-# File tests/demo/list(int).go is generated from a got template.
-tests/gotgo/slice(list.List).$(O): tests/gotgo/slice(list.List).go tests/demo/list(int).$(O)
-
-tests/test(int).$(O): tests/test(int).go
-
-tests/test(string).$(O): tests/test(string).go
-
-# found file tests/test.got to build...
-# error:  tests/test.got:1:13: expected ';', found '('
-tests/test.gotgo: tests/test.got
-
-# ignoring tests/test.got.go, since it's a generated file
-# ignoring tests/test.gotgo.go, since it's a generated file
-installbins:  $(bindir)/gotgo $(bindir)/gotmake
-installpkgs:  $(pkgdir)/gotgo/box.gotgo $(pkgdir)/gotgo/finalizer.gotgo $(pkgdir)/gotgo/slice.gotgo
+test:
+	cd tests && make test

@@ -1,11 +1,9 @@
 Gotgo
 =====
 
-This document describes the second iteration of my attempt at a
+This document describes the third iteration of my attempt at a
 reasonable implementation of generics for [go](http://golang.org)
-based on the idea of template packages.  (Note: this package was
-formerly known as gotit... which had unfortunate possible
-mispronunciations.)
+based on the idea of template packages.
 
 Quick start
 -----------
@@ -14,37 +12,26 @@ You can compile `gotgo` by just typing
 
     make
 
-and you can run it on an example program by typing
+and you can run it on an example template file by typing
 
-    ./gotimports tests/example.go
+    ./gotgo pkg/gotgo/slice.got int string
 
-or
-
-    make tests/example
-
-The former will simply generate all the sources for `example.go`,
-which you can then browse through.  The latter will also compile it.
-You can browse the generated sources at
-`tests/demo/slice(list.List).go`, etc. and may also want to examine
-the [Makefile][1] to see how to integrate `gotgo` into your own build
-system.  The Makefile has overlapping functionality with the
-`gotimports` program, and is intended to help you understand how gotgo
-works.
-
-If you just want to see what a template package will look like, check
-out [slice.got][2], which is a simple package exporting handy
-functions for slices, such as Map, Fold, Filter, Append, Cat (concat).
+You may want to examine the [Makefile][1] to see how to integrate
+`gotgo` into your own build system.  If you just want to see what a
+template package will look like, check out [slice.got][2], which is a
+simple package exporting handy functions for slices, such as Map,
+Fold, Filter, Append, Cat (concat).
 
 [1]: http://github.com/droundy/gotgo/blob/master/Makefile
-[2]: http://github.com/droundy/gotgo/blob/master/tests/demo/slice.got
+[2]: http://github.com/droundy/gotgo/blob/master/gotgo/slice.got
 
 The got file
 ============
 
 A template package is contained in a got file, ending with the `.got`
 extension.  As you might be able to guess, "got" stands for "go
-template".  In the future, this should be extended so a template
-package can have multiple source files, just like ordinary packages.
+template".  If you call `gotgo` with a `--package-name` flag, you can
+generate a go file which is a member of any package you like.
 
 The got file differs from an ordinary go file only in its package
 line, which will be something like
@@ -58,7 +45,7 @@ no second type parameter is provided.  The default type argument is
 optional, and will itself default to interface{}.  The default type
 should be either an interface type, or a type defined in terms of
 other template parameters, although I'm not sure whether/how to
-enforce this.  Your got file *must* be able to compile with the
+enforce this.  Your got file *should* be able to compile with the
 default type!
 
 Within this package, the types "a" and "b" will be in scope, so the
@@ -84,9 +71,10 @@ We could also have a function that uses both "a" and "b":
 Importing a got package
 =======================
 
-If you want to use the above package, you will do so by creating an
-ordinary go file that has a special import statement that specifies
-the types desired.  So, given the above got file, we could write
+If you want to use the above package, you typically do so by creating
+an ordinary go file that has a special import statement that specifies
+the types desired.  Currently, this is not automated, as gotgo is in
+rapid flux.
 
     import intslice "./slice(int)"
 
@@ -99,9 +87,9 @@ interpretation of the import string is implementation-dependent), and
 is accepted by the go compiler, so long as the `slice(int)` package
 has been generated and compiled.
 
-The package name of this templated import will be dependent on the
-gotgo implementation, so you need to specify your own qualified
-package name in order to safely use the package.
+The package name of this templated import may be dependent on the
+gotgo implementation unless you use the `--package-name` flag when
+running `gotgo`.
 
 Getting fancier with interface types
 ====================================
@@ -151,30 +139,17 @@ default type you choose).
 How does it work?
 =================
 
-I have implemented a simple got compiler (called gotgo, barring better
-ideas), which you pass the name of the got file you wish to compile.
-Gotgo will parse this file, and first generate a go file for the
-default types, which it will compile---to make sure it compiles, and
-so you can get easy and immediate feedback if you break something.
-This is intended to make the "got" templating language itself closer
-to statically typed than cpp macros or C++ templates.  It also means
-that any imports in your template must already be compiled when you
-run gotgo.
-
-After compiling the template with its default types, a go program will
-be written (by gotgo) which accepts as its arguments a list of
-parameter types and flags indicating any additional imports needed to
-define those types, which will first verify that its arguments satisfy
-the interface constraints in the package, and then will write to
-stdout a go file that can be compiled as that template package.
+There is a simple program called `gotgo`, which you pass the filepath
+to a `.got` file and a list of types.  By default, `gotgo` outputs the
+go code to stdout, but if you specify `-o foo.go`, it will create a
+file named `foo.go`.
 
 A zeroconf go build system will need to track down and build imported
 packages, and in order to work with `gotgo`, will need to know how to
-build templated packages.  An helper for such a build system is
-provided in the gotimports.go program, which (non-recursively)
-generates any templated imports for a go source file.  On the other
-hand, you can also write Makefile rules by hand, as I did for the
-`example.go` program which ships with gotgo.
+build templated packages.  An sketch of a helper for such a build
+system is provided in the `gotimports` program, which (non-recursively
+and incorrectly) dumps some make rules that might be helpful in
+creating your own Makefile.
 
 
 Problems solved by gotgo
@@ -209,3 +184,8 @@ Problems solved by gotgo
   once for each type it is parametrized by, which is the minimal
   number of recompiles consistent with allowing the compiler to
   generate optimal code for each type.
+
+- In the latest `gotgo`, you can use the `--package-name` flag to
+  generate a go file in a given package.  This makes it possible to
+  use generics with private data types, or in the same package that
+  defines a data type.

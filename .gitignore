@@ -11,3 +11,4 @@ gotimports
 *ø*.go
 example
 *(*).go
+.install*

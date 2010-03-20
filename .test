@@ -9,13 +9,4 @@ make Makefile
 # drastic like that...
 make install
 
-# FIXME: gotimports seems to now be buggy...
-#./bin/gotimports tests/example.go
-make -f Makefile.dev test
-
-test -f 'tests/gotgo/slice(int).go'
-test -f 'tests/gotgo/slice(list.List).go'
-test -f 'tests/test(string).go'
-
-./tests/example
-
+make test
