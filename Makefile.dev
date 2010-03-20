@@ -92,7 +92,7 @@ bin/gotmake: src/gotmake.$(O)
 	$(LD) -o $@ $<
 $(bindir)/gotmake: bin/gotmake
 	cp $< $@
-src/gotmake.$(O): src/gotmake.go src/got/buildit.$(O) src/gotgo/slice(string).$(O)
+src/gotmake.$(O): src/gotmake.go src/gotgo/slice(string).$(O)
 
 tests/demo/list(int).$(O): tests/demo/list(int).go
 

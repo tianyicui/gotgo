@@ -17,8 +17,9 @@ import (
 	"path"
   "sort"
 	"flag"
+	"bytes"
+	"go/printer"
 	stringslice "./gotgo/slice(string)"
-	"./got/buildit"
 )
 
 var ignoreInstalled = flag.Bool("ignore-installed", true,
@@ -172,7 +173,7 @@ func createGofile(sourcePath, importPath string, names map[string]string) {
 		// ignore non-templated import...
 	default:
 		// Begin by scanning the type parameters in the import
-		types, imps := buildit.ParseImport(sourcePath)
+		types, imps := ParseImport(sourcePath)
 		//fmt.Printf("# I see types %v and imports %v\n", types, imps)
 		basename := sourcePath[0:n]
 		gotname := basename + ".got"
@@ -353,4 +354,53 @@ func dirs(s string) (out []string) {
 		s = d[0:len(d)-1]
 	}
 	return out
+}
+
+// This is a convenience type for finding the imports of a file.
+type getimps struct {
+	imps *[]string
+}
+func (g getimps) Visit(x interface{}) ast.Visitor {
+	switch v := x.(type) {
+	case *ast.SelectorExpr:
+		*g.imps = stringslice.Append(*g.imps, pretty(v.X))
+	}
+	if x != nil {
+		return g
+	}
+	return nil
+}
+
+// This parses an import statement, such as "./foo/bar(int,baz.T(foo.T))",
+// returning a list of types and a list of imports that are needed
+// (e.g. baz and foo in the above example).
+func ParseImport(s string) (types, imports []string) {
+	// First, I want to cut off any preliminary directories, so the
+	// import should look like a function call.
+	n := strings.Index(s, "(")
+	if n < 1 { return }
+	start := 0
+	for i := n-1; i>=0; i-- {
+		if s[i] == '/' {
+			start = i+1
+			break
+		}
+	}
+	s = s[start:]
+	// Now we just need to parse the apparent function call...
+	x, _ := parser.ParseExpr(s, s, nil)
+	is := []string{}
+	callexpr, ok := x.(*ast.CallExpr)
+	if !ok { return } // FIXME: need error handling?
+	for _, texpr := range callexpr.Args {
+		types = stringslice.Append(types, pretty(texpr))
+		ast.Walk(getimps{&is}, texpr)
+	}
+	return types, is
+}
+
+func pretty(expr interface{}) string {
+	b := bytes.NewBufferString("")
+	printer.Fprint(b, expr)
+	return b.String()
 }

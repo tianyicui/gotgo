@@ -11,13 +11,8 @@ import (
 	"fmt"
 	"exec"
 	"path"
-	"strings"
-	"bytes"
 	"go/scanner"
 	"go/token"
-	"go/ast"
-	"go/parser"
-	"go/printer"
 	stringslice "../gotgo/slice(string)"
 )
 
@@ -149,52 +144,4 @@ func TypeList(s *scanner.Scanner) (types []string, error os.Error) {
 			tok, lit))
 	}
 	return
-}
-
-type getimps struct {
-	imps *[]string
-}
-func (g getimps) Visit(x interface{}) ast.Visitor {
-	switch v := x.(type) {
-	case *ast.SelectorExpr:
-		*g.imps = stringslice.Append(*g.imps, pretty(v.X))
-	}
-	if x != nil {
-		return g
-	}
-	return nil
-}
-
-// This parses an import statement, such as "./foo/bar(int,baz.T(foo.T))",
-// returning a list of types and a list of imports that are needed
-// (e.g. baz and foo in the above example).
-func ParseImport(s string) (types, imports []string) {
-	// First, I want to cut off any preliminary directories, so the
-	// import should look like a function call.
-	n := strings.Index(s, "(")
-	if n < 1 { return }
-	start := 0
-	for i := n-1; i>=0; i-- {
-		if s[i] == '/' {
-			start = i+1
-			break
-		}
-	}
-	s = s[start:]
-	// Now we just need to parse the apparent function call...
-	x, _ := parser.ParseExpr(s, s, nil)
-	is := []string{}
-	callexpr, ok := x.(*ast.CallExpr)
-	if !ok { return } // FIXME: need error handling?
-	for _, texpr := range callexpr.Args {
-		types = stringslice.Append(types, pretty(texpr))
-		ast.Walk(getimps{&is}, texpr)
-	}
-	return types, is
-}
-
-func pretty(expr interface{}) string {
-	b := bytes.NewBufferString("")
-	printer.Fprint(b, expr)
-	return b.String()
 }
