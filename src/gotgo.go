@@ -18,6 +18,7 @@ func dieWith(e string) {
 }
 
 var pname = flag.String("package-name", "NAME", "name of output package")
+var prefix = flag.String("prefix", "NAME", "prefix for top-level functions")
 var outname = flag.String("o", "GONAME", "name of output file")
 
 func main() {
@@ -57,6 +58,9 @@ func writeGotGotgo(filename string, out *os.File, actualtypes []string) (e os.Er
 	}
 	if *pname == "NAME" {
 		*pname = string(gotpname)
+	}
+	if *prefix == "NAME" {
+		*prefix = ""
 	}
 	_, tok, lit := scan.Scan()
 	if tok != token.LPAREN {
@@ -98,7 +102,15 @@ func writeGotGotgo(filename string, out *os.File, actualtypes []string) (e os.Er
 			fmt.Fprint(out, t)
 			lastpos = pos.Offset + len(lit)
 		}
-		pos,tok,lit = scan.Scan();
+		newpos,newtok,newlit := scan.Scan()
+		if string(lit) == string(gotpname) && newtok == token.PERIOD {
+			fmt.Fprint(out, string(x[lastpos:pos.Offset]))
+			fmt.Fprint(out, *prefix)
+			lastpos = newpos.Offset + len(newlit)
+			pos,tok,lit = scan.Scan()
+		} else {
+			pos, tok, lit = newpos, newtok, newlit
+		}
 	}
 	fmt.Fprintf(out, string(x[lastpos:]))
 
