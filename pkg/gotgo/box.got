@@ -3,7 +3,7 @@ package box(type ta, type tb ta, type tk string)
 // Here we have some utility routines for handling "boxing"
 // conversions from a to b, where a is assignment-compatible with b.
 
-func Box(as []ta) []tb {
+func box.Box(as []ta) []tb {
 	bs := make([]tb, len(as))
 	for i,a := range as {
 		bs[i] = a
@@ -11,7 +11,7 @@ func Box(as []ta) []tb {
 	return bs
 }
 
-func BoxMap(ma map[tk]ta) (mb map[tk]tb) {
+func box.BoxMap(ma map[tk]ta) (mb map[tk]tb) {
 	for i,a := range ma {
 		mb[i] = a
 	}

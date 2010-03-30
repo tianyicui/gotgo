@@ -116,7 +116,7 @@ func writeGotGotgo(filename string, out *os.File, actualtypes []string) (e os.Er
 
 	fmt.Fprintf(out,`
 // Here we will test that the types parameters are ok...
-func testTypes(arg0 %s`, vartypes[params[0]])
+func %stestTypes(arg0 %s`, *prefix, vartypes[params[0]])
 	for i,p := range params[1:] {
 		t := vartypes[p]
 		if t == params[0] { t = vartypes[params[0]] }
