@@ -14,11 +14,13 @@ bindir=$(subst $(space),\ ,$(GOBIN))
 pkgdir=$(subst $(space),\ ,$(GOROOT)/pkg/$(GOOS)_$(GOARCH))
 srcpkgdir=$(subst $(space),\ ,$(GOROOT)/src/pkg)
 
-.PHONY: test binaries packages install
+.PHONY: test binaries packages install clean
 .SUFFIXES: .$(O) .go .got
 
 all: binaries
 install: all $(bindir)/gotgo $(bindir)/gotimports .installpkgs
+clean:
+	rm -f bin/* */*.$(O) */*/*.$(O) */*/*/*.$(O)
 
 binaries:  bin/gotgo bin/gotimports
 packages:  pkg/gotgo/box.got pkg/gotgo/finalizer.got pkg/gotgo/slice.got
